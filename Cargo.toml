@@ -1,0 +1,20 @@
+[package]
+name = "spotify-dl"
+version = "0.1.0"
+authors = ["Guillem Castro <guillemcastro4@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+librespot = { path = "./librespot" }
+tokio-core = "0.1.17"
+futures = "0.1"
+futures-state-stream = "0.1"
+structopt = { version = "0.3", default-features = false }
+rpassword = "5.0"
+indicatif = "0.15.0"
+
+[dependencies.flac-bound]
+version = "0.2.0"
+
+[package.metadata.deb]
+depends="libflac-dev"
