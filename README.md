@@ -4,6 +4,16 @@ A command line utility to download songs and playlists directly from Spotify's s
 
 You need a Spotify Premium account.
 
+## Dependencies
+
+spotify-dl depends on libflac
+
+### Debian-based distros
+
+```
+sudo apt install libflac-dev
+```
+
 ## Usage
 
 ```
