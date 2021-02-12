@@ -37,6 +37,10 @@ ARGS:
 
 Songs and playlists must be passed as Spotify URIs (e.g. `spotify:track:123456789abcdefghABCDEF` for songs and `spotify:playlist:123456789abcdefghABCDEF` for playlists).
 
+## Disclaimer
+
+The usage of this software may infringe Spotify's ToS and/or your local legislation. Use it under your own risk.
+
 ## License
 
 spotify-dl is licensed under the MIT license. See [LICENSE](LICENSE).
