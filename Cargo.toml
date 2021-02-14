@@ -3,6 +3,7 @@ name = "spotify-dl"
 version = "0.1.0"
 authors = ["Guillem Castro <guillemcastro4@gmail.com>"]
 edition = "2018"
+links = "FLAC"
 
 [dependencies]
 librespot = { path = "./librespot" }
@@ -18,3 +19,6 @@ version = "0.2.0"
 
 [package.metadata.deb]
 depends="libflac-dev"
+
+[build-dependencies]
+pkg-config = "0.3.16"
