@@ -27,6 +27,8 @@ struct Opt {
     tracks: Vec<String>,
     #[structopt(short = "u", long = "username", help = "Your Spotify username")]
     username: String,
+    #[structopt(short = "p", long = "password", help = "Your Spotify password")]
+    password: Option<String>,
     #[structopt(short = "d", long = "destination", default_value = ".", help = "The directory where the songs will be downloaded")]
     destination: String
 }
@@ -85,7 +87,7 @@ fn main() {
     let mut core = Core::new().unwrap();
 
     let username = opt.username;
-    let password = rpassword::read_password_from_tty(Some("Password: ")).unwrap();
+    let password = opt.password.unwrap_or_else(|| rpassword::read_password_from_tty(Some("Password: ")).unwrap());
     let credentials = Credentials::with_password(username, password);
 
     let session = create_session(&mut core, credentials.clone());
