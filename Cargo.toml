@@ -6,16 +6,16 @@ edition = "2018"
 links = "FLAC"
 
 [dependencies]
-librespot = { path = "./librespot" }
 tokio-core = "0.1.17"
 futures = "0.1"
 futures-state-stream = "0.1"
 structopt = { version = "0.3", default-features = false }
 rpassword = "5.0"
 indicatif = "0.15.0"
-
-[dependencies.flac-bound]
-version = "0.2.0"
+librespot = "0.3.1"
+tokio = { version = "1.18.2", features = ["rt"] }
+flac-bound = { version = "0.2.0" }
+audiotags = "0.2.7182"
 
 [package.metadata.deb]
 depends="libflac-dev"
