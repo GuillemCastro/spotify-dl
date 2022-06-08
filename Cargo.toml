@@ -6,7 +6,6 @@ edition = "2018"
 links = "FLAC"
 
 [dependencies]
-tokio-core = "0.1.17"
 futures = "0.1"
 futures-state-stream = "0.1"
 structopt = { version = "0.3", default-features = false }
