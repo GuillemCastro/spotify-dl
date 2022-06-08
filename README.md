@@ -11,7 +11,12 @@ spotify-dl depends on libflac
 ### Debian-based distros
 
 ```
-sudo apt install libflac-dev
+sudo apt install libflac-dev libasound2-dev
+```
+### Red Hat-based distros
+
+```
+sudo dnf install flac-devel alsa-lib-devel
 ```
 
 ## Usage
