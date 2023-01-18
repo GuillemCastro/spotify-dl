@@ -19,6 +19,12 @@ sudo apt install libflac-dev libasound2-dev
 sudo dnf install flac-devel alsa-lib-devel
 ```
 
+### MacOSX
+
+```
+brew install flac
+```
+
 ## Usage
 
 ```
