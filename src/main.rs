@@ -15,6 +15,7 @@ use librespot::playback::player::Player;
 
 use librespot::metadata::{Album, Artist, Metadata, Track};
 
+use regex::Regex;
 use structopt::StructOpt;
 
 use indicatif::{ProgressBar, ProgressStyle};
@@ -142,7 +143,18 @@ async fn main() {
     let mut tracks: Vec<SpotifyId> = Vec::new();
 
     for track_url in opt.tracks {
-        let track = SpotifyId::from_uri(track_url.as_str()).unwrap();
+        let track = SpotifyId::from_uri(track_url.as_str()).unwrap_or_else(|_| {
+            let regex = Regex::new(r"https://open.spotify.com/(\w+)/(.*)\?").unwrap();
+
+            let results = regex.captures(track_url.as_str()).unwrap();
+            let uri = format!(
+                "spotify:{}:{}",
+                results.get(1).unwrap().as_str(),
+                results.get(2).unwrap().as_str()
+            );
+
+            SpotifyId::from_uri(&uri).unwrap()
+        });
         match &track.audio_type {
             librespot::core::spotify_id::SpotifyAudioType::Track => {
                 tracks.push(track);
