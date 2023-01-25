@@ -42,7 +42,7 @@ struct Opt {
     #[structopt(
         short = "o",
         long = "ordered",
-        help = "Download songs in the order they are in the playlist, prfixing the filename with the track number"
+        help = "Prefixing the filename with its index in the playlist"
     )]
     ordered: bool,
 }
@@ -104,7 +104,7 @@ async fn download_tracks(
         let full_track_name = format!("{} - {}", artist_name, metadata.track_name);
         let filename: String;
         if ordered {
-            filename = format!("{:02} - {}.flac", i + 1, full_track_name);
+            filename = format!("{:03} - {}.flac", i + 1, full_track_name);
         } else {
             filename = format!("{}.flac", full_track_name);
         }
