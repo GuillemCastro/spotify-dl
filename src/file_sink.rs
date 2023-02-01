@@ -22,16 +22,13 @@ impl FileSink {
 }
 
 impl Open for FileSink {
+	// use the unwrap_or_else method instead of the if let statement to handle the absence of a path value
     fn open(path: Option<String>, _audio_format: AudioFormat) -> Self {
-        if let Some(path) = path {
-            let file = path;
-            FileSink {
-                sink: file,
-                content: Vec::new(),
-                metadata: None
-            }
-        } else {
-            panic!();
+        let file = path.unwrap_or_else(|| panic!());
+        FileSink {
+            sink: file,
+            content: Vec::new(),
+            metadata: None
         }
     }
 }

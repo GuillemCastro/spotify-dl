@@ -3,6 +3,7 @@ mod file_sink;
 extern crate rpassword;
 
 use std::{path::PathBuf};
+use std::path::Path;
 
 use librespot::{core::authentication::Credentials, metadata::Playlist};
 use librespot::core::config::SessionConfig;
@@ -82,15 +83,22 @@ async fn download_tracks(session: &Session, destination: PathBuf, tracks: Vec<Sp
         let joined_path = destination.join(&filename);
         let path = joined_path.to_str().unwrap();
         bar.set_message(full_track_name.as_str());
-        let mut file_sink = file_sink::FileSink::open(Some(path.to_owned()), librespot::playback::config::AudioFormat::S16);
-        file_sink.add_metadata(metadata);
-        let (mut player, _) = Player::new(player_config.clone(), session.clone(), None, move || {
-            Box::new(file_sink)
-        });
-        player.load(track, true, 0);
-        player.await_end_of_track().await;
-        player.stop();
-        bar.inc(1);
+        
+        let path_with_no_extension = Path::new(path).with_extension("");
+        if !path_with_no_extension.exists() {
+			let mut file_sink = file_sink::FileSink::open(Some(path.to_owned()), librespot::playback::config::AudioFormat::S16);
+			file_sink.add_metadata(metadata);
+			let (mut player, _) = Player::new(player_config.clone(), session.clone(), None, move || {
+				Box::new(file_sink)
+			});
+			player.load(track, true, 0);
+			player.await_end_of_track().await;
+			player.stop();
+			bar.inc(1);
+        } else {
+            println!("File already exists: {}", path);
+			bar.inc(1);
+        }
     }
     bar.finish();
 }
