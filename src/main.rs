@@ -46,6 +46,17 @@ async fn create_session(credentials: Credentials) -> Session {
     session
 }
 
+fn make_filename_compatible(filename: &str) -> String {
+    let invalid_chars = ['<', '>', ':', '\'', '"', '/', '\\', '|', '?', '*'];
+    let mut clean = String::new();
+    for c in filename.chars() {
+        if !invalid_chars.contains(&c) && c.is_ascii() && !c.is_control() && c.len_utf8() == 1  {
+            clean.push(c);
+        }
+    }
+    clean
+}
+
 async fn download_tracks(session: &Session, destination: PathBuf, tracks: Vec<SpotifyId>) {
     let player_config = PlayerConfig::default();
     let bar_style = ProgressStyle::default_bar()
@@ -79,10 +90,11 @@ async fn download_tracks(session: &Session, destination: PathBuf, tracks: Vec<Sp
             metadata.artists.push(artist_name.clone());
         }
         let full_track_name = format!("{} - {}", artist_name, metadata.track_name);
-        let filename = format!("{}.flac", full_track_name);
+        let full_track_name_clean = make_filename_compatible(full_track_name.as_str());
+        let filename = format!("{}.flac", full_track_name_clean);
         let joined_path = destination.join(&filename);
         let path = joined_path.to_str().unwrap();
-        bar.set_message(full_track_name.as_str());
+        bar.set_message(full_track_name_clean.as_str());
         
         let path_with_no_extension = Path::new(path).with_extension("");
         if !path_with_no_extension.exists() {
