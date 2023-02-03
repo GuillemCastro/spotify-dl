@@ -96,8 +96,28 @@ async fn download_tracks(session: &Session, destination: PathBuf, tracks: Vec<Sp
         let path = joined_path.to_str().unwrap();
         bar.set_message(full_track_name_clean.as_str());
         
-        let path_with_no_extension = Path::new(path).with_extension("");
-        if !path_with_no_extension.exists() {
+        
+		let file_name = Path::new(path)
+			.file_stem()
+			.unwrap()
+			.to_str()
+			.unwrap();
+
+		let path_parent = Path::new(path).parent().unwrap();
+		let entries = path_parent.read_dir().unwrap();
+
+		let mut file_exists = false;
+		for entry in entries {
+			let entry = entry.unwrap();
+			let entry_path = entry.path();
+			let entry_file_name = entry_path.file_stem().unwrap().to_str().unwrap();
+			if entry_file_name == file_name {
+				file_exists = true;
+				break;
+			}
+		}
+
+        if !file_exists {
 			let mut file_sink = file_sink::FileSink::open(Some(path.to_owned()), librespot::playback::config::AudioFormat::S16);
 			file_sink.add_metadata(metadata);
 			let (mut player, _) = Player::new(player_config.clone(), session.clone(), None, move || {
@@ -108,7 +128,7 @@ async fn download_tracks(session: &Session, destination: PathBuf, tracks: Vec<Sp
 			player.stop();
 			bar.inc(1);
         } else {
-            println!("File already exists: {}", path);
+			// println!("File with the same name already exists, skipping: {}", path);
 			bar.inc(1);
         }
     }
