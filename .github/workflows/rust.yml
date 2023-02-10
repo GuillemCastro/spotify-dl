@@ -18,11 +18,11 @@ jobs:
         platform: [macos-latest, ubuntu-latest, windows-latest]
         include:
           - platform: macos-latest
-            target: macos
+            target: macos-x86_64
           - platform: ubuntu-latest
-            target: linux64
+            target: linux-x86_64
           - platform: windows-latest
-            target: win64
+            target: windows-x86_64
         # platform: [ubuntu-latest]
     steps:
     - uses: actions/checkout@v3
@@ -32,14 +32,14 @@ jobs:
       uses: dtolnay/rust-toolchain@stable
     - if: matrix.platform == 'ubuntu-latest'
       run: |
-          apt-get update
-          apt-get install -y libasound2-dev gcc alsa
+          sudo apt-get update
+          sudo apt-get install -y libasound2-dev gcc alsa
     - name: Build
       run: | 
         cargo build --verbose --release
     - name: Rename binary
       run: | 
-        mv target/release/spotify-dl target/release/spotify-dl.${{ matrix.target }}
+        mv target/release/spotify-dl* target/release/spotify-dl.${{ matrix.target }}
     - uses: "marvinpinto/action-automatic-releases@latest"
       with:
         repo_token: "${{ secrets.GITHUB_TOKEN }}"
