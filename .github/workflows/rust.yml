@@ -37,9 +37,14 @@ jobs:
     - name: Build
       run: | 
         cargo build --verbose --release
-    - name: Rename binary
+    - if: matrix.platform == 'windows-latest'
+      name: Rename binary
       run: | 
-        mv target/release/spotify-dl* target/release/spotify-dl.${{ matrix.target }}
+        mv target/release/spotify-dl.exe target/release/spotify-dl.${{ matrix.target }}
+    - if: matrix.platform != 'windows-latest'
+      name: Rename binary
+      run: | 
+        mv target/release/spotify-dl target/release/spotify-dl.${{ matrix.target }}
     - uses: "marvinpinto/action-automatic-releases@latest"
       with:
         repo_token: "${{ secrets.GITHUB_TOKEN }}"
