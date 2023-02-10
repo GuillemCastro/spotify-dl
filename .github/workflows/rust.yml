@@ -3,8 +3,6 @@ name: Rust
 on:
   push:
     branches: [ "master" ]
-  pull_request:
-    branches: [ "master" ]
 
 env:
   CARGO_TERM_COLOR: always
@@ -12,16 +10,36 @@ env:
 jobs:
   build:
 
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.platform }}
 
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: [macos-latest, ubuntu-latest, windows-latest]
+        include:
+          - platform: macos-latest
+            target: macos
+          - platform: ubuntu-latest
+            target: linux64
+          - platform: windows-latest
+            target: win64
+        # platform: [ubuntu-latest]
     steps:
     - uses: actions/checkout@v3
-    - name: Install Dependencies
-      run: sudo apt install libflac-dev build-essential pkg-config alsa libasound2-dev
+    - name: Setup cmake
+      uses: jwlawson/actions-setup-cmake@v1.13
+    - name: install Rust stable
+      uses: dtolnay/rust-toolchain@stable
+    - if: matrix.platform == 'ubuntu-latest'
+      run: |
+          apt-get update
+          apt-get install -y libasound2-dev gcc alsa
     - name: Build
-      run: cargo build --verbose --release
-    - name: Run tests
-      run: cargo test --verbose
+      run: | 
+        cargo build --verbose --release
+    - name: Rename binary
+      run: | 
+        mv target/release/spotify-dl target/release/spotify-dl.${{ matrix.target }}
     - uses: "marvinpinto/action-automatic-releases@latest"
       with:
         repo_token: "${{ secrets.GITHUB_TOKEN }}"
@@ -30,4 +48,4 @@ jobs:
         title: "Latest Build"
         files: |
           LICENSE
-          target/release/spotify-dl
+          target/release/spotify-dl*

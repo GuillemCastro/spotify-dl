@@ -271,6 +271,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "cmake"
+version = "0.1.49"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "db34956e100b30725f2eb215f90d4871051239535632f84fea3bc92722c66b7c"
+dependencies = [
+ "cc",
+]
+
+[[package]]
 name = "combine"
 version = "4.6.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -475,18 +484,12 @@ dependencies = [
 
 [[package]]
 name = "flac-bound"
-version = "0.2.0"
+version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "750099df417963398b7d52cfbdbda53aa20c64d553d33cacedc872fa30cb8a00"
+checksum = "d438dc79612e982e62d0d86a1fd434b4f536cddf156ce02063cd56fc3d8d426c"
 dependencies = [
- "flac-sys",
+ "libflac-sys",
 ]
-
-[[package]]
-name = "flac-sys"
-version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b5ccca1896065c6c3927147467ab3d042565607c01194e36560e84344a02c5c0"
 
 [[package]]
 name = "flate2"
@@ -960,6 +963,16 @@ name = "libc"
 version = "0.2.126"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "349d5a591cd28b49e1d1037471617a32ddcda5731b99419008085f72d5a53836"
+
+[[package]]
+name = "libflac-sys"
+version = "0.2.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "358a7beee1a8a2b28876814d6dbf06126255b062a59f02779143ec68cb9e54e7"
+dependencies = [
+ "cmake",
+ "libc",
+]
 
 [[package]]
 name = "libloading"
@@ -1911,7 +1924,6 @@ dependencies = [
  "futures-state-stream",
  "indicatif",
  "librespot",
- "pkg-config",
  "regex",
  "rpassword",
  "structopt",

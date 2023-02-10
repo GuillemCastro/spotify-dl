@@ -3,7 +3,7 @@ name = "spotify-dl"
 version = "0.1.0"
 authors = ["Guillem Castro <guillemcastro4@gmail.com>"]
 edition = "2018"
-links = "FLAC"
+#links = "FLAC"
 
 [dependencies]
 futures = "0.1"
@@ -13,12 +13,12 @@ rpassword = "5.0"
 indicatif = "0.15.0"
 librespot = "0.3.1"
 tokio = { version = "1.18.2", features = ["rt"] }
-flac-bound = { version = "0.2.0" }
+flac-bound = { version = "0.3.0", default-features = false, features = ["libflac-noogg"] }
 audiotags = "0.2.7182"
 regex = "1.7.1"
 
 [package.metadata.deb]
 depends="libflac-dev"
 
-[build-dependencies]
-pkg-config = "0.3.16"
+# [build-dependencies]
+# pkg-config = "0.3.16"
