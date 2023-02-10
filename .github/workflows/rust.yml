@@ -8,8 +8,23 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  build:
 
+  create_release:
+    name: Create release
+    runs-on: ubuntu-latest
+    outputs:
+      upload_url: ${{ steps.create_release.outputs.upload_url }}
+    steps:
+      - name: Create release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: "latest"
+          release_name: "Latest build"
+
+  build:
     runs-on: ${{ matrix.platform }}
 
     strategy:
@@ -45,12 +60,11 @@ jobs:
       name: Rename binary
       run: | 
         mv target/release/spotify-dl target/release/spotify-dl.${{ matrix.target }}
-    - uses: "marvinpinto/action-automatic-releases@latest"
+    - name: Upload
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        repo_token: "${{ secrets.GITHUB_TOKEN }}"
-        automatic_release_tag: "latest"
-        prerelease: true
-        title: "Latest Build"
-        files: |
-          LICENSE
-          target/release/spotify-dl*
+        upload_url: ${{ needs.create_release.outputs.upload_url }}
+        asset_path: target/release/spotify-dl.${{ matrix.target }}
+        asset_name: spotify-dl.${{ matrix.target }}
