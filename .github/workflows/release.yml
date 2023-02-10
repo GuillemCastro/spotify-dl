@@ -22,8 +22,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: "latest"
-          release_name: "Latest build"
+          tag_name:  ${{ github.ref }}
+          release_name:  Release ${{ github.ref }}
 
   build:
     runs-on: ${{ matrix.platform }}
