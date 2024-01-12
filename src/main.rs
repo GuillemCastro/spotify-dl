@@ -49,7 +49,7 @@ struct Opt {
         short = "c",
         long = "compression",
         help = "Setting the flac compression level from 0 (fastest, least compression) to
-8 (slowest, most compression). A value larger than 8 will be reated as 8. Defaults to 4."
+8 (slowest, most compression). A value larger than 8 will be Treated as 8. Default is 4."
     )]
     compression: Option<u32>,
 }

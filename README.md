@@ -41,15 +41,14 @@ FLAGS:
 
 OPTIONS:
     -c, --compression <compression>    Setting the flac compression level from 0 (fastest, least compression) to
-                                       8 (slowest, most compression). A value larger than 8 will be reated as 8.
-                                       Defaults to 4.
+                                       8 (slowest, most compression). A value larger than 8 will be Treated as 8.
+                                       Default is 4.
     -d, --destination <destination>    The directory where the songs will be downloaded [default: .]
     -p, --password <password>          Your Spotify password
     -u, --username <username>          Your Spotify username
 
 ARGS:
-    <tracks>...    A list of Spotify URIs (songs, podcasts or playlists)
-```
+    <tracks>...    A list of Spotify URIs (songs, podcasts or playlists)```
 
 Songs and playlists must be passed as Spotify URIs or URLs (e.g. `spotify:track:123456789abcdefghABCDEF` for songs and `spotify:playlist:123456789abcdefghABCDEF` for playlists or `https://open.spotify.com/playlist/123456789abcdefghABCDEF?si=1234567890`).
 
