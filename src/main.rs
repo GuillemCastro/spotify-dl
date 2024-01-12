@@ -45,6 +45,13 @@ struct Opt {
         help = "Prefixing the filename with its index in the playlist"
     )]
     ordered: bool,
+    #[structopt(
+        short = "c",
+        long = "compression",
+        help = "Setting the flac compression level from 0 (fastest, least compression) to
+8 (slowest, most compression). A value larger than 8 will be reated as 8. Defaults to 4."
+    )]
+    compression: Option<u32>,
 }
 
 #[derive(Clone)]
@@ -67,6 +74,7 @@ async fn download_tracks(
     destination: PathBuf,
     tracks: Vec<SpotifyId>,
     ordered: bool,
+    compression: Option<u32>,
 ) {
     let player_config = PlayerConfig::default();
     let bar_style = ProgressStyle::default_bar()
@@ -116,6 +124,9 @@ async fn download_tracks(
             librespot::playback::config::AudioFormat::S16,
         );
         file_sink.add_metadata(metadata);
+        if let Some(compression) = compression {
+            file_sink.set_compression(compression);
+        }
         let (mut player, _) =
             Player::new(player_config.clone(), session.clone(), None, move || {
                 Box::new(file_sink)
@@ -184,6 +195,7 @@ async fn main() {
         PathBuf::from(opt.destination),
         tracks,
         opt.ordered,
+        opt.compression,
     )
     .await;
 }
