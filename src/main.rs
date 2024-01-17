@@ -3,6 +3,7 @@ mod file_sink;
 extern crate rpassword;
 
 use std::path::PathBuf;
+use std::path::Path;
 
 use librespot::core::config::SessionConfig;
 use librespot::core::session::Session;
@@ -69,6 +70,17 @@ async fn create_session(credentials: Credentials) -> Session {
     session
 }
 
+fn make_filename_compatible(filename: &str) -> String {
+    let invalid_chars = ['<', '>', ':', '\'', '"', '/', '\\', '|', '?', '*'];
+    let mut clean = String::new();
+    for c in filename.chars() {
+        if !invalid_chars.contains(&c) && c.is_ascii() && !c.is_control() && c.len_utf8() == 1  {
+            clean.push(c);
+        }
+    }
+    clean
+}
+
 async fn download_tracks(
     session: &Session,
     destination: PathBuf,
@@ -110,31 +122,57 @@ async fn download_tracks(
             metadata.artists.push(artist_name.clone());
         }
         let full_track_name = format!("{} - {}", artist_name, metadata.track_name);
+        let full_track_name_clean = make_filename_compatible(full_track_name.as_str());
+        //let filename = format!("{}.flac", full_track_name_clean);
         let filename: String;
         if ordered {
-            filename = format!("{:03} - {}.flac", i + 1, full_track_name);
+            filename = format!("{:03} - {}.flac", i + 1, full_track_name_clean);
         } else {
-            filename = format!("{}.flac", full_track_name);
+            filename = format!("{}.flac", full_track_name_clean);
         }
         let joined_path = destination.join(&filename);
         let path = joined_path.to_str().unwrap();
-        bar.set_message(full_track_name.as_str());
-        let mut file_sink = file_sink::FileSink::open(
-            Some(path.to_owned()),
-            librespot::playback::config::AudioFormat::S16,
-        );
-        file_sink.add_metadata(metadata);
-        if let Some(compression) = compression {
-            file_sink.set_compression(compression);
+        bar.set_message(full_track_name_clean.as_str());
+
+
+		let file_name = Path::new(path)
+			.file_stem()
+			.unwrap()
+			.to_str()
+			.unwrap();
+
+		let path_parent = Path::new(path).parent().unwrap();
+		let entries = path_parent.read_dir().unwrap();
+
+		let mut file_exists = false;
+		for entry in entries {
+			let entry = entry.unwrap();
+			let entry_path = entry.path();
+			let entry_file_name = entry_path.file_stem().unwrap().to_str().unwrap();
+			if entry_file_name == file_name {
+				file_exists = true;
+				break;
+			}
+		}
+
+        if !file_exists {
+			let mut file_sink = file_sink::FileSink::open(
+			    Some(path.to_owned()),
+			    librespot::playback::config::AudioFormat::S16
+			);
+			file_sink.add_metadata(metadata);
+			let (mut player, _) =
+                Player::new(player_config.clone(), session.clone(), None, move || {
+                    Box::new(file_sink)
+                });
+			player.load(*track, true, 0);
+			player.await_end_of_track().await;
+			player.stop();
+			bar.inc(1);
+        } else {
+			// println!("File with the same name already exists, skipping: {}", path);
+			bar.inc(1);
         }
-        let (mut player, _) =
-            Player::new(player_config.clone(), session.clone(), None, move || {
-                Box::new(file_sink)
-            });
-        player.load(*track, true, 0);
-        player.await_end_of_track().await;
-        player.stop();
-        bar.inc(1);
     }
     bar.finish();
 }

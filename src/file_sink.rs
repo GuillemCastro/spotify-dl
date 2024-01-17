@@ -32,16 +32,12 @@ impl FileSink {
 
 impl Open for FileSink {
     fn open(path: Option<String>, _audio_format: AudioFormat) -> Self {
-        if let Some(path) = path {
-            let file = path;
-            FileSink {
-                sink: file,
-                content: Vec::new(),
-                metadata: None,
-                compression: 4,
-            }
-        } else {
-            panic!();
+
+        let file_path = path.unwrap_or_else(|| panic!());
+        FileSink {
+            sink: file_path,
+            content: Vec::new(),
+            metadata: None
         }
     }
 }
