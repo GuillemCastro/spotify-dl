@@ -46,6 +46,13 @@ struct Opt {
         help = "Prefixing the filename with its index in the playlist"
     )]
     ordered: bool,
+    #[structopt(
+        short = "c",
+        long = "compression",
+        help = "Setting the flac compression level from 0 (fastest, least compression) to
+8 (slowest, most compression). A value larger than 8 will be Treated as 8. Default is 4."
+    )]
+    compression: Option<u32>,
 }
 
 #[derive(Clone)]
@@ -79,6 +86,7 @@ async fn download_tracks(
     destination: PathBuf,
     tracks: Vec<SpotifyId>,
     ordered: bool,
+    compression: Option<u32>,
 ) {
     let player_config = PlayerConfig::default();
     let bar_style = ProgressStyle::default_bar()
@@ -225,6 +233,7 @@ async fn main() {
         PathBuf::from(opt.destination),
         tracks,
         opt.ordered,
+        opt.compression,
     )
     .await;
 }

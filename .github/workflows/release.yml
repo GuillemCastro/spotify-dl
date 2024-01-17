@@ -27,7 +27,7 @@ jobs:
 
   build:
     runs-on: ${{ matrix.platform }}
-
+    needs: create_release
     strategy:
       fail-fast: false
       matrix:
