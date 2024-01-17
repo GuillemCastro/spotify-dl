@@ -16,6 +16,7 @@ tokio = { version = "1.18.2", features = ["rt"] }
 flac-bound = { version = "0.3.0", default-features = false, features = ["libflac-noogg"] }
 audiotags = "0.2.7182"
 regex = "1.7.1"
+machine-uid = "0.5.1"
 
 [package.metadata.deb]
 depends="libflac-dev"
