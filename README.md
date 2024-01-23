@@ -28,7 +28,7 @@ brew install flac
 ## Usage
 
 ```
-spotify-dl 0.1.0
+spotify-dl 0.1.1
 A commandline utility to download music directly from Spotify
 
 USAGE:
@@ -36,17 +36,19 @@ USAGE:
 
 FLAGS:
     -h, --help       Prints help information
-    -o, --ordered    Download songs in the order they are in the playlist, prfixing the filename with the track number
+    -o, --ordered    Prefixing the filename with its index in the playlist
     -V, --version    Prints version information
 
 OPTIONS:
+    -c, --compression <compression>    Setting the flac compression level from 0 (fastest, least compression) to
+                                       8 (slowest, most compression). A value larger than 8 will be Treated as 8.
+                                       Default is 4.
     -d, --destination <destination>    The directory where the songs will be downloaded [default: .]
     -p, --password <password>          Your Spotify password
     -u, --username <username>          Your Spotify username
 
 ARGS:
-    <tracks>...    A list of Spotify URIs (songs, podcasts or playlists)
-```
+    <tracks>...    A list of Spotify URIs (songs, podcasts or playlists)```
 
 Songs and playlists must be passed as Spotify URIs or URLs (e.g. `spotify:track:123456789abcdefghABCDEF` for songs and `spotify:playlist:123456789abcdefghABCDEF` for playlists or `https://open.spotify.com/playlist/123456789abcdefghABCDEF?si=1234567890`).
 
@@ -56,4 +58,4 @@ The usage of this software may infringe Spotify's ToS and/or your local legislat
 
 ## License
 
-spotify-dl is licensed under the MIT license. See [LICENSE](LICENSE).
+spotify-dl is lic:ewensed under the MIT license. See [LICENSE](LICENSE).

@@ -69,3 +69,4 @@ jobs:
         upload_url: ${{ needs.create_release.outputs.upload_url }}
         asset_path: target/release/spotify-dl.${{ matrix.target }}
         asset_name: spotify-dl.${{ matrix.target }}
+        asset_content_type: application/octet-stream
