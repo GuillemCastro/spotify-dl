@@ -1,6 +1,6 @@
 # spotify-dl
 
-A command line utility to download songs and playlists directly from Spotify's servers.
+A command line utility to download songs, podcasts, playlists and albums directly from Spotify's servers.
 
 You need a Spotify Premium account.
 
@@ -50,7 +50,7 @@ OPTIONS:
 ARGS:
     <tracks>...    A list of Spotify URIs (songs, podcasts or playlists)```
 
-Songs and playlists must be passed as Spotify URIs or URLs (e.g. `spotify:track:123456789abcdefghABCDEF` for songs and `spotify:playlist:123456789abcdefghABCDEF` for playlists or `https://open.spotify.com/playlist/123456789abcdefghABCDEF?si=1234567890`).
+Songs, playlists and albums must be passed as Spotify URIs or URLs (e.g. `spotify:track:123456789abcdefghABCDEF` for songs and `spotify:playlist:123456789abcdefghABCDEF` for playlists or `https://open.spotify.com/playlist/123456789abcdefghABCDEF?si=1234567890`).
 
 ## Disclaimer
 
