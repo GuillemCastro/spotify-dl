@@ -27,7 +27,7 @@ use indicatif::{ProgressBar, ProgressStyle};
     about = "A commandline utility to download music directly from Spotify"
 )]
 struct Opt {
-    #[structopt(help = "A list of Spotify URIs (songs, podcasts or playlists)")]
+    #[structopt(help = "A list of Spotify URIs (songs, podcasts, playlists or albums)")]
     tracks: Vec<String>,
     #[structopt(short = "u", long = "username", help = "Your Spotify username")]
     username: String,
@@ -97,7 +97,7 @@ async fn download_tracks(
     bar.set_style(bar_style);
     bar.enable_steady_tick(500);
 
-    for (i, track) in tracks.iter().enumerate() {
+    for (i, track) in tracks.iter().enumerate() { 
         let track_item = Track::get(&session, *track).await.unwrap();
         let artist_name: String;
 
@@ -175,6 +175,33 @@ async fn download_tracks(
     bar.finish();
 }
 
+async fn get_tracks_from_playlist_or_album(session: &Session, track: SpotifyId, track_url: &String) -> Vec<SpotifyId> {
+    match Playlist::get(&session, track).await {
+        Ok(playlist) => {
+            println!(
+                "Adding all songs from playlist {} (by {}) to the queue",
+                &playlist.name, &playlist.user
+            );
+            return playlist.tracks;
+        },
+        _ => ()
+    }
+
+    match Album::get(&session, track).await {
+        Ok(album) => {
+            println!(
+                "Adding all songs from album {} (by {:?}) to the queue",
+                &album.name, &album.artists
+            );
+            return album.tracks;
+        }
+        Err(_) => {
+            println!("Unsupported URI {}", &track_url);
+            vec![]
+        }
+    }
+}
+
 #[tokio::main]
 async fn main() {
     let opt = Opt::from_args();
@@ -210,18 +237,8 @@ async fn main() {
                 tracks.push(track);
             }
             librespot::core::spotify_id::SpotifyAudioType::NonPlayable => {
-                match Playlist::get(&session, track).await {
-                    Ok(mut playlist) => {
-                        println!(
-                            "Adding all songs from playlist {} (by {}) to the queue",
-                            &playlist.name, &playlist.user
-                        );
-                        tracks.append(&mut playlist.tracks);
-                    }
-                    Err(_) => {
-                        println!("Unsupported track {}", &track_url);
-                    }
-                }
+                let mut multiple_tracks = get_tracks_from_playlist_or_album(&session, track, &track_url).await;
+                tracks.append(&mut multiple_tracks)
             }
         }
     }
