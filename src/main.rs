@@ -4,11 +4,13 @@ extern crate rpassword;
 
 use std::path::Path;
 use std::path::PathBuf;
+use std::time::Duration;
 
 use librespot::core::config::SessionConfig;
 use librespot::core::session::Session;
 use librespot::core::spotify_id::SpotifyId;
 use librespot::playback::config::PlayerConfig;
+use librespot::playback::mixer::NoOpVolume;
 use librespot::{core::authentication::Credentials, metadata::Playlist};
 
 use librespot::playback::audio_backend::Open;
@@ -65,7 +67,7 @@ pub struct TrackMetadata {
 async fn create_session(credentials: Credentials) -> Session {
     let mut session_config = SessionConfig::default();
     session_config.device_id = machine_uid::get().unwrap();
-    let session = Session::connect(session_config, credentials, None)
+    let (session, _) = Session::connect(session_config, credentials, None, true)
         .await
         .unwrap();
     session
@@ -91,11 +93,11 @@ async fn download_tracks(
 ) {
     let player_config = PlayerConfig::default();
     let bar_style = ProgressStyle::default_bar()
-        .template("[{elapsed_precise}] {bar:40.cyan/blue} {pos:>7}/{len:7} (ETA: {eta}) {msg}")
+        .template("[{elapsed_precise}] {bar:40.cyan/blue} {pos:>7}/{len:7} (ETA: {eta}) {msg}").unwrap()
         .progress_chars("##-");
     let bar = ProgressBar::new(tracks.len() as u64);
     bar.set_style(bar_style);
-    bar.enable_steady_tick(500);
+    bar.enable_steady_tick(Duration::from_millis(100));
 
     for (i, track) in tracks.iter().enumerate() { 
         let track_item = Track::get(&session, *track).await.unwrap();
@@ -134,7 +136,7 @@ async fn download_tracks(
         }
         let joined_path = destination.join(&filename);
         let path = joined_path.to_str().unwrap();
-        bar.set_message(full_track_name_clean.as_str());
+        bar.set_message(full_track_name_clean);
 
         let file_name = Path::new(path).file_stem().unwrap().to_str().unwrap();
 
@@ -160,7 +162,7 @@ async fn download_tracks(
             file_sink.add_metadata(metadata);
             file_sink.set_compression(compression.unwrap_or(4));
             let (mut player, _) =
-                Player::new(player_config.clone(), session.clone(), None, move || {
+                Player::new(player_config.clone(), session.clone(), Box::new(NoOpVolume{}), move || {
                     Box::new(file_sink)
                 });
             player.load(*track, true, 0);
@@ -209,7 +211,7 @@ async fn main() {
     let username = opt.username;
     let password = opt
         .password
-        .unwrap_or_else(|| rpassword::read_password_from_tty(Some("Password: ")).unwrap());
+        .unwrap_or_else(|| rpassword::prompt_password("Password: ").unwrap());
     let credentials = Credentials::with_password(username, password);
 
     let session = create_session(credentials.clone()).await;

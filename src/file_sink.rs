@@ -80,7 +80,7 @@ impl Sink for FileSink {
         Ok(())
     }
 
-    fn write(&mut self, packet: &AudioPacket, converter: &mut Converter) -> Result<(), SinkError> {
+    fn write(&mut self, packet: AudioPacket, converter: &mut Converter) -> Result<(), SinkError> {
         let data = converter.f64_to_s16(packet.samples().unwrap());
         let mut data32: Vec<i32> = data.iter().map(|el| i32::from(*el)).collect();
         self.content.append(&mut data32);
