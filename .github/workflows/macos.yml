@@ -1,4 +1,4 @@
-name: Build latest - MacOS
+name: Release - MacOS
 
 on:
   push:

@@ -1,4 +1,4 @@
-name: Build latest - Windows
+name: Release - Windows
 
 on:
   push:

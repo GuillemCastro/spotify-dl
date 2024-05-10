@@ -1,0 +1,29 @@
+name: Build latest - Windows
+
+on:
+  push:
+    branches:
+      - '*'
+
+env:
+  CARGO_TERM_COLOR: always
+
+permissions:
+  contents: write
+
+jobs:
+
+  build:
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+    steps:
+    - uses: actions/checkout@v3
+    - name: Setup cmake
+      uses: jwlawson/actions-setup-cmake@v1.13
+    - name: install Rust stable
+      uses: dtolnay/rust-toolchain@stable
+    - name: Build
+      run: | 
+        cargo build --verbose --release
+

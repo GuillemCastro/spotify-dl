@@ -1,8 +1,8 @@
-name: Release - Linux
+name: Build latest - Linux
 
 on:
   push:
-    tags:
+    branches:
       - '*'
 
 env:
@@ -30,17 +30,4 @@ jobs:
     - name: Build
       run: | 
         cargo build --verbose --release
-    - name: Rename binary
-      run: | 
-        mv target/release/spotify-dl target/release/spotify-dl.linux-x86_64
-    - name: Upload Linux Artifact
-      uses: ncipollo/release-action@v1
-      with:
-        allowUpdates: True
-        makeLatest: True
-        omitBody: True
-        omitBodyDuringUpdate: True
-        omitNameDuringUpdate: True
-        artifacts: target/release/spotify-dl.linux-x86_64
-        token: ${{ secrets.GITHUB_TOKEN }}
 
