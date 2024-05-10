@@ -26,9 +26,15 @@ jobs:
     - name: Build
       run: | 
         cargo build --verbose --release
+    - name: Compress binary
+      run: | 
+        tar -czvf target/release/spotify-dl.macos.tar.gz target/release/spotify-dl
+    - name: SHA 256
+      run: |
+        shasum -a 256 target/release/spotify-dl.macos.tar.gz
     - name: Rename binary
       run: | 
-        mv target/release/spotify-dl target/release/spotify-dl.macos-x86_64
+        mv target/release/spotify-dl target/release/spotify-dl.macos
     - name: Upload MacOS Artifact
       uses: ncipollo/release-action@v1
       with:
@@ -37,5 +43,5 @@ jobs:
         omitBody: True
         omitBodyDuringUpdate: True
         omitNameDuringUpdate: True
-        artifacts: target/release/spotify-dl.macos-x86_64
+        artifacts: target/release/spotify-dl.macos, target/release/spotify-dl.macos.tar.gz
         token: ${{ secrets.GITHUB_TOKEN }}
