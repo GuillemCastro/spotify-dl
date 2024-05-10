@@ -2,11 +2,8 @@ name: Build latest - MacOS
 
 on:
   push:
-    branches:
-      - master
-  pull_request:
-    branches:
-      - master
+    tags:
+      - '*'
 
 env:
   CARGO_TERM_COLOR: always

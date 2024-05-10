@@ -2,11 +2,8 @@ name: Build latest - Linux
 
 on:
   push:
-    branches:
-      - master
-  pull_request:
-    branches:
-      - master
+    tags:
+      - '*'
 
 env:
   CARGO_TERM_COLOR: always
