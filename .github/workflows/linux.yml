@@ -1,0 +1,49 @@
+name: Build latest - Linux
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+env:
+  CARGO_TERM_COLOR: always
+
+permissions:
+  contents: write
+
+jobs:
+
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+    steps:
+    - uses: actions/checkout@v3
+    - name: Setup cmake
+      uses: jwlawson/actions-setup-cmake@v1.13
+    - name: install Rust stable
+      uses: dtolnay/rust-toolchain@stable
+    - name: Setup alsa
+      run: |
+          sudo apt-get update
+          sudo apt-get install -y libasound2-dev gcc alsa
+    - name: Build
+      run: | 
+        cargo build --verbose --release
+    - name: Rename binary
+      run: | 
+        mv target/release/spotify-dl target/release/spotify-dl.linux-x86_64
+    - name: Upload Linux Artifact
+      uses: ncipollo/release-action@v1
+      with:
+        allowUpdates: True
+        makeLatest: True
+        omitBody: True
+        omitBodyDuringUpdate: True
+        omitNameDuringUpdate: True
+        artifacts: target/release/spotify-dl.linux-x86_64
+        token: ${{ secrets.GITHUB_TOKEN }}
+
