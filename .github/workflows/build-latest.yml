@@ -1,9 +1,12 @@
-name: Release
+name: Build latest
 
 on:
   push:
-    tags:
-      - "v*"
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
 
 env:
   CARGO_TERM_COLOR: always
@@ -22,8 +25,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name:  ${{ github.ref }}
-          release_name:  Release ${{ github.ref }}
+          tag_name:  latest
+          release_name:  Latest Build
 
   build:
     runs-on: ${{ matrix.platform }}
