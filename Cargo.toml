@@ -7,6 +7,7 @@ readme = "README.md"
 license = "MIT"
 homepage = "https://github.com/GuillemCastro/spotify-dl"
 repository = "https://github.com/GuillemCastro/spotify-dl"
+description = "A command-line utility to download songs and playlists from Spotify"
 
 [dependencies]
 structopt = { version = "0.3", default-features = false }
