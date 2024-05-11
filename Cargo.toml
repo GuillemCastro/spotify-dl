@@ -5,6 +5,8 @@ authors = ["Guillem Castro <guillemcastro4@gmail.com>"]
 edition = "2021"
 readme = "README.md"
 license = "MIT"
+homepage = "https://github.com/GuillemCastro/spotify-dl"
+repository = "https://github.com/GuillemCastro/spotify-dl"
 
 [dependencies]
 structopt = { version = "0.3", default-features = false }
