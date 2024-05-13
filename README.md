@@ -4,30 +4,9 @@ A command line utility to download songs, podcasts, playlists and albums directl
 
 You need a Spotify Premium account.
 
-## Dependencies
-
-spotify-dl depends on libflac
-
-### Debian-based distros
-
-```
-sudo apt install libflac-dev libasound2-dev
-```
-### Red Hat-based distros
-
-```
-sudo dnf install flac-devel alsa-lib-devel
-```
-
-### MacOSX
-
-```
-brew install flac
-```
-
 ## Installation
 
-Before installation, make sure all dependencies are installed for your platform.
+You can install it using `cargo`, `homebrew` or from source.
 
 ### Using `cargo`
 
