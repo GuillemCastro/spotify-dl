@@ -1,0 +1,114 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - '*'
+
+env:
+  CARGO_TERM_COLOR: always
+
+permissions:
+  contents: write
+
+jobs:
+
+  linux:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+    steps:
+    - uses: actions/checkout@v3
+    - name: install Rust stable
+      uses: dtolnay/rust-toolchain@stable
+    - name: Build
+      run: | 
+        cargo build --verbose --release
+    - name: Rename binary
+      run: | 
+        mv target/release/spotify-dl target/release/spotify-dl.linux-x86_64
+    - name: Upload Linux Artifact
+      uses: ncipollo/release-action@v1
+      with:
+        allowUpdates: True
+        makeLatest: True
+        omitBody: True
+        omitBodyDuringUpdate: True
+        omitNameDuringUpdate: True
+        artifacts: target/release/spotify-dl.linux-x86_64
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+  macos:
+    runs-on: macos-latest
+    strategy:
+      fail-fast: false
+    steps:
+    - uses: actions/checkout@v3
+    - name: install Rust stable
+      uses: dtolnay/rust-toolchain@stable
+    - name: Build
+      run: | 
+        cargo build --verbose --release
+    - name: Rename binary
+      run: | 
+        mv target/release/spotify-dl target/release/spotify-dl.macos-aarch64
+    - name: Upload MacOS Artifact
+      uses: ncipollo/release-action@v1
+      with:
+        allowUpdates: True
+        makeLatest: True
+        omitBody: True
+        omitBodyDuringUpdate: True
+        omitNameDuringUpdate: True
+        artifacts: target/release/spotify-dl.macos-aarch64
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+  windows:
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+    steps:
+    - uses: actions/checkout@v3
+    - name: install Rust stable
+      uses: dtolnay/rust-toolchain@stable
+    - name: Build
+      run: | 
+        cargo build --verbose --release
+    - name: Rename binary
+      run: | 
+        mv target/release/spotify-dl.exe target/release/spotify-dl.windows-x86_64
+    - name: Upload Windows Artifact
+      uses: ncipollo/release-action@v1
+      with:
+        allowUpdates: True
+        makeLatest: True
+        omitBody: True
+        omitBodyDuringUpdate: True
+        omitNameDuringUpdate: True
+        artifacts: target/release/spotify-dl.windows-x86_64
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+  cargo:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: install Rust stable
+      uses: dtolnay/rust-toolchain@stable
+    - name: Build
+      run: | 
+        cargo build --verbose --release
+    - name: Run cargo publish
+      run: | 
+        cargo publish --token ${{ secrets.CARGO_TOKEN }}
+
+  homebrew:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Update Hombrew formula
+        uses: dawidd6/action-homebrew-bump-formula@v3
+        with:
+          tap: guillemcastro/spotify-dl
+          formula: spotify-dl
+          token: ${{ secrets.HOMEBREW_TOKEN }}
+          tag: ${{ github.ref }}
+          no_fork: true
