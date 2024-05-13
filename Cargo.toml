@@ -13,9 +13,9 @@ description = "A command-line utility to download songs and playlists from Spoti
 structopt = { version = "0.3", default-features = false }
 rpassword = "7.0"
 indicatif = "0.17"
-librespot = "0.4.2"
+librespot = { version = "0.4.2", default-features = false }
 tokio = { version = "1", features = ["full", "tracing"] }
-flac-bound = { version = "0.3.0", default-features = false, features = ["libflac-noogg"] }
+flacenc = { version = "0.4" }
 audiotags = "0.5"
 regex = "1.7.1"
 machine-uid = "0.5.1"
@@ -25,6 +25,3 @@ tracing-subscriber = { version = "0.3", features = ["env-filter", "registry"] }
 lazy_static = "1.4"
 async-trait = "0.1"
 dirs = "5.0"
-
-[package.metadata.deb]
-depends="libflac-dev"

@@ -31,7 +31,7 @@ struct Opt {
         short = "c",
         long = "compression",
         help = "Setting the flac compression level from 0 (fastest, least compression) to
-8 (slowest, most compression). A value larger than 8 will be Treated as 8. Default is 4."
+8 (slowest, most compression). A value larger than 8 will be Treated as 8. Default is 4. NOT USED."
     )]
     compression: Option<u32>,
     #[structopt(
@@ -70,6 +70,10 @@ async fn main() -> anyhow::Result<()> {
     if opt.tracks.is_empty() {
         eprintln!("No tracks provided");
         std::process::exit(1);
+    }
+
+    if opt.compression.is_some() {
+        eprintln!("Compression level is not supported yet. It will be ignored.");
     }
 
     let session = create_session(opt.username, opt.password).await?;
