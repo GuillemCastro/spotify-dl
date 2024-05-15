@@ -9,6 +9,8 @@ use librespot::playback::audio_backend::SinkError;
 use librespot::playback::convert::Converter;
 use librespot::playback::decoder::AudioPacket;
 
+use crate::encoder::get_encoder;
+use crate::encoder::Samples;
 use crate::track::TrackMetadata;
 
 pub enum SinkEvent {
@@ -67,18 +69,42 @@ impl Sink for FileSink {
     fn stop(&mut self) -> Result<(), SinkError> {
         tracing::info!("Writing to file: {:?}", &self.sink);
 
-        let config = flacenc::config::Encoder::default()
-            .into_verified()
-            .map_err(|_| SinkError::OnWrite("Failed to create flac encoder".to_string()))?;
-        let source = flacenc::source::MemSource::from_samples(&self.content, 2, 16, 44100);
-        let flac_stream = flacenc::encode_with_fixed_block_size(&config, source, config.block_size)
-            .map_err(|_| SinkError::OnWrite("Failed to encode flac".to_string()))?;
-        let mut sink = flacenc::bitsink::ByteSink::new();
-        flac_stream
-            .write(&mut sink)
-            .map_err(|_| SinkError::OnWrite("Failed to write flac to sink".to_string()))?;
-        std::fs::write(&self.sink, sink.as_slice())
+        // let config = flacenc::config::Encoder::default()
+        //     .into_verified()
+        //     .map_err(|_| SinkError::OnWrite("Failed to create flac encoder".to_string()))?;
+        // let source = flacenc::source::MemSource::from_samples(&self.content, 2, 16, 44100);
+        // let flac_stream = flacenc::encode_with_fixed_block_size(&config, source, config.block_size)
+        //     .map_err(|_| SinkError::OnWrite("Failed to encode flac".to_string()))?;
+        // let mut sink = flacenc::bitsink::ByteSink::new();
+        // flac_stream
+        //     .write(&mut sink)
+        //     .map_err(|_| SinkError::OnWrite("Failed to write flac to sink".to_string()))?;
+        // std::fs::write(&self.sink, sink.as_slice())
+        //     .map_err(|_| SinkError::OnWrite("Failed to write flac to file".to_string()))?;
+        let flac_enc = get_encoder(crate::encoder::Format::Flac)
+            .map_err(|_| SinkError::OnWrite("Failed to get flac encoder".to_string()))?;
+        let mp3_enc = get_encoder(crate::encoder::Format::Mp3)
+            .map_err(|_| SinkError::OnWrite("Failed to get mp3 encoder".to_string()))?;
+
+        let flac_stream = flac_enc.encode(Samples::new(
+            self.content.clone(),
+            44100,
+            2,
+            16,
+        ))
+        .map_err(|_| SinkError::OnWrite("Failed to encode flac".to_string()))?;
+        let mp3_stream = mp3_enc.encode(Samples::new(
+            self.content.clone(),
+            44100,
+            2,
+            16,
+        ))
+        .map_err(|_| SinkError::OnWrite("Failed to encode mp3".to_string()))?;
+
+        flac_stream.write_to_file(&self.sink)
             .map_err(|_| SinkError::OnWrite("Failed to write flac to file".to_string()))?;
+        mp3_stream.write_to_file(&self.sink)
+            .map_err(|_| SinkError::OnWrite("Failed to write mp3 to file".to_string()))?;
 
         let mut tag = Tag::new()
             .with_tag_type(TagType::Flac)

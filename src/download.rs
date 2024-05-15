@@ -3,6 +3,8 @@ use std::path::PathBuf;
 use std::sync::Arc;
 
 use anyhow::Result;
+use futures::StreamExt;
+use futures::TryStreamExt;
 use indicatif::MultiProgress;
 use indicatif::ProgressBar;
 use indicatif::ProgressState;
@@ -13,8 +15,10 @@ use librespot::playback::mixer::NoOpVolume;
 use librespot::playback::mixer::VolumeGetter;
 use librespot::playback::player::Player;
 
-use crate::file_sink::FileSink;
-use crate::file_sink::SinkEvent;
+use crate::channel_sink::ChannelSink;
+use crate::encoder::Format;
+use crate::encoder::Samples;
+use crate::channel_sink::SinkEvent;
 use crate::track::Track;
 use crate::track::TrackMetadata;
 
@@ -29,16 +33,18 @@ pub struct DownloadOptions {
     pub destination: PathBuf,
     pub compression: Option<u32>,
     pub parallel: usize,
+    pub format: Format,
 }
 
 impl DownloadOptions {
-    pub fn new(destination: Option<String>, compression: Option<u32>, parallel: usize) -> Self {
+    pub fn new(destination: Option<String>, compression: Option<u32>, parallel: usize, format: Format) -> Self {
         let destination =
             destination.map_or_else(|| std::env::current_dir().unwrap(), PathBuf::from);
         DownloadOptions {
             destination,
             compression,
             parallel,
+            format
         }
     }
 }
@@ -57,23 +63,13 @@ impl Downloader {
         tracks: Vec<Track>,
         options: &DownloadOptions,
     ) -> Result<()> {
-        let this = Arc::new(self);
-
-        let chunks = tracks.chunks(options.parallel);
-        for chunk in chunks {
-            let mut tasks = Vec::new();
-            for track in chunk {
-                let t = track.clone();
-                let downloader = this.clone();
-                let options = options.clone();
-                tasks.push(tokio::spawn(async move {
-                    downloader.download_track(t, &options).await
-                }));
-            }
-            for task in tasks {
-                task.await??;
-            }
-        }
+        futures::stream::iter(tracks)
+            .map(|track| {
+                self.download_track(track, &options)
+            })
+            .buffer_unordered(options.parallel)
+            .try_collect::<Vec<_>>()
+            .await?;
 
         Ok(())
     }
@@ -87,20 +83,20 @@ impl Downloader {
         let path = options
             .destination
             .join(file_name.clone())
-            .with_extension("flac")
+            .with_extension(options.format.extension())
             .to_str()
             .ok_or(anyhow::anyhow!("Could not set the output path"))?
             .to_string();
 
-        let (file_sink, mut sink_channel) = FileSink::new(path.to_string(), metadata);
+        let (sink, mut sink_channel) = ChannelSink::new(metadata);
 
-        let file_size = file_sink.get_approximate_size();
+        let file_size = sink.get_approximate_size();
 
         let (mut player, _) = Player::new(
             self.player_config.clone(),
             self.session.clone(),
             self.volume_getter(),
-            move || Box::new(file_sink),
+            move || Box::new(sink),
         );
 
         let pb = self.progress_bar.add(ProgressBar::new(file_size as u64));
@@ -111,25 +107,39 @@ impl Downloader {
 
         player.load(track.id, true, 0);
 
-        let name = file_name.clone();
+        let mut samples = Vec::<i32>::new();
+
         tokio::spawn(async move {
-            while let Some(event) = sink_channel.recv().await {
-                match event {
-                    SinkEvent::Written { bytes, total } => {
-                        tracing::trace!("Written {} bytes out of {}", bytes, total);
-                        pb.set_position(bytes as u64);
-                    }
-                    SinkEvent::Finished => {
-                        pb.finish_with_message(format!("Downloaded {}", name));
-                    }
-                }
-            }
+            player.await_end_of_track().await;
+            player.stop();
         });
 
-        player.await_end_of_track().await;
-        player.stop();
+        while let Some(event) = sink_channel.recv().await {
+            match event {
+                SinkEvent::Write { bytes, total, mut content } => {
+                    tracing::trace!("Written {} bytes out of {}", bytes, total);
+                    pb.set_position(bytes as u64);
+                    samples.append(&mut content);
+                }
+                SinkEvent::Finished => {
+                    pb.finish_with_message(format!("Downloaded {}", &file_name));
+                }
+            }
+        }
 
         tracing::info!("Downloaded track: {:?}", file_name);
+
+        let samples = Samples::new(samples, 44100, 2, 16);
+
+        let format = options.format.clone();
+        tokio_rayon::spawn(move || {
+            tracing::info!("Encoding track: {:?}", file_name);
+            let encoder = crate::encoder::get_encoder(format).unwrap();
+            let stream = encoder.encode(samples).unwrap();
+            tracing::info!("Writing track: {:?} to file: {}", file_name, &path);
+            stream.write_to_file(&path).unwrap();
+        }).await;
+
         Ok(())
     }
 

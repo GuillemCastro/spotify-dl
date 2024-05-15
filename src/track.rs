@@ -14,6 +14,7 @@ trait TrackCollection {
 pub async fn get_tracks(spotify_ids: Vec<String>, session: &Session) -> Result<Vec<Track>> {
     let mut tracks: Vec<Track> = Vec::new();
     for id in spotify_ids {
+        tracing::debug!("Getting tracks for: {}", id);
         let id = parse_uri_or_url(&id).ok_or(anyhow::anyhow!("Invalid track"))?;
         let new_tracks = match id.audio_type {
             librespot::core::spotify_id::SpotifyAudioType::Track => vec![Track::from_id(id)],
@@ -39,7 +40,9 @@ fn parse_uri_or_url(track: &str) -> Option<SpotifyId> {
 }
 
 fn parse_uri(track_uri: &str) -> Option<SpotifyId> {
-    SpotifyId::from_uri(track_uri).ok()
+    let res = SpotifyId::from_uri(track_uri);
+    tracing::info!("Parsed URI: {:?}", res);
+    res.ok()
 }
 
 fn parse_url(track_url: &str) -> Option<SpotifyId> {
