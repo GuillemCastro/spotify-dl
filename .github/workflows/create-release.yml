@@ -17,6 +17,8 @@ jobs:
 
   bump-version:
     runs-on: ubuntu-latest
+    outputs:
+      new_version: ${{ steps.cargo-bump.outputs.new_version }}
     steps:
     - uses: actions/checkout@v4
     - name: Run semver-diff
@@ -42,21 +44,21 @@ jobs:
           ~/.cargo/git/db/
         key: ${{ runner.os }}-cargo-cargo-bump
     - name: Bump Cargo.toml version
+      id: cargo-bump
       shell: bash
       if: steps.semver-diff.outputs.release_type != '' || inputs.release_type != ''
       working-directory: '.'
       run: |
-        cargo install cargo-bump --force
-        if [[ -z "${{ inputs.release_type }}" ]]; then
-          cargo bump ${{ steps.semver-diff.outputs.release_type }}
-        else
-          cargo bump ${{ inputs.release_type }}
+        if ! command -v cargo-bump &> /dev/null; then
+          cargo install cargo-bump --force
         fi
+        cargo bump ${{ inputs.release_type }}
         cargo update --workspace
+        echo "new_version=$(grep -m 1 -oP '(?<=version = ")[^"]+' Cargo.toml)" >> "$GITHUB_OUTPUT"
     - name: Commit changes
       uses: stefanzweifel/git-auto-commit-action@v4
       with:
-        commit_message: "Bump version to v${{ steps.semver-diff.outputs.new_version }}"
+        commit_message: "Bump version to v${{ steps.cargo-bump.outputs.new_version }}"
         commit_user_name: "github-actions[bot]"
         commit_user_email: "github-actions[bot]@users.noreply.github.com"
         commit_author: "github-actions[bot] <github-actions[bot]@users.noreply.github.com>"
@@ -64,5 +66,165 @@ jobs:
     - name: Create tag
       uses: rickstaa/action-create-tag@v1
       with:
-        tag: v${{ steps.semver-diff.outputs.new_version }}
-        message: "Bump version to v${{ steps.semver-diff.outputs.new_version }}"
+        tag: v${{ steps.cargo-bump.outputs.new_version }}
+        message: "Bump version to v${{ steps.cargo-bump.outputs.new_version }}"
+
+  release:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+    needs: bump-version
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+        with:
+          ref: v${{ needs.bump-version.outputs.new_version }}
+      - name: Update CHANGELOG
+        id: changelog
+        uses: requarks/changelog-action@v1
+        with:
+          token: ${{ github.token }}
+          tag: v${{ needs.bump-version.outputs.new_version }}
+      - name: Create Release
+        uses: ncipollo/release-action@v1
+        with:
+          allowUpdates: true
+          draft: false
+          makeLatest: true
+          name: v${{ needs.bump-version.outputs.new_version }}
+          body: ${{ steps.changelog.outputs.changes }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          tag: v${{ needs.bump-version.outputs.new_version }}
+      - name: Commit CHANGELOG.md
+        uses: stefanzweifel/git-auto-commit-action@v4
+        with:
+          branch: master
+          commit_message: 'docs: update CHANGELOG.md for v${{ needs.bump-version.outputs.new_version }} [skip ci]'
+          file_pattern: CHANGELOG.md
+
+  linux:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+    needs: 
+      - release
+      - bump-version
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        ref: v${{ needs.bump-version.outputs.new_version }}
+    - name: install Rust stable
+      uses: dtolnay/rust-toolchain@stable
+    - name: Build
+      run: | 
+        cargo build --verbose --release
+    - name: Rename binary
+      run: | 
+        mv target/release/spotify-dl target/release/spotify-dl.linux-x86_64
+    - name: Upload Linux Artifact
+      uses: ncipollo/release-action@v1
+      with:
+        allowUpdates: True
+        makeLatest: True
+        omitBody: True
+        omitBodyDuringUpdate: True
+        omitNameDuringUpdate: True
+        artifacts: target/release/spotify-dl.linux-x86_64
+        token: ${{ secrets.GITHUB_TOKEN }}
+        tag: v${{ needs.bump-version.outputs.new_version }}
+
+  macos:
+    runs-on: macos-latest
+    strategy:
+      fail-fast: false
+    needs: 
+      - release
+      - bump-version
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        ref: v${{ needs.bump-version.outputs.new_version }}
+    - name: install Rust stable
+      uses: dtolnay/rust-toolchain@stable
+    - name: Build
+      run: | 
+        cargo build --verbose --release
+    - name: Rename binary
+      run: | 
+        mv target/release/spotify-dl target/release/spotify-dl.macos-aarch64
+    - name: Upload MacOS Artifact
+      uses: ncipollo/release-action@v1
+      with:
+        allowUpdates: True
+        makeLatest: True
+        omitBody: True
+        omitBodyDuringUpdate: True
+        omitNameDuringUpdate: True
+        artifacts: target/release/spotify-dl.macos-aarch64
+        token: ${{ secrets.GITHUB_TOKEN }}
+        tag: v${{ needs.bump-version.outputs.new_version }}
+
+  windows:
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+    needs: 
+      - release
+      - bump-version
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        ref: v${{ needs.bump-version.outputs.new_version }}
+    - name: install Rust stable
+      uses: dtolnay/rust-toolchain@stable
+    - name: Build
+      run: | 
+        cargo build --verbose --release
+    - name: Rename binary
+      run: | 
+        mv target/release/spotify-dl.exe target/release/spotify-dl.windows-x86_64
+    - name: Upload Windows Artifact
+      uses: ncipollo/release-action@v1
+      with:
+        allowUpdates: True
+        makeLatest: True
+        omitBody: True
+        omitBodyDuringUpdate: True
+        omitNameDuringUpdate: True
+        artifacts: target/release/spotify-dl.windows-x86_64
+        token: ${{ secrets.GITHUB_TOKEN }}
+        tag: v${{ needs.bump-version.outputs.new_version }}
+
+  cargo:
+    runs-on: ubuntu-latest
+    needs: 
+      - bump-version
+      - release
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        ref: v${{ needs.bump-version.outputs.new_version }}
+    - name: install Rust stable
+      uses: dtolnay/rust-toolchain@stable
+    - name: Build
+      run: | 
+        cargo build --verbose --release
+    - name: Run cargo publish
+      run: | 
+        cargo publish --token ${{ secrets.CARGO_TOKEN }}
+
+  homebrew:
+    runs-on: ubuntu-latest
+    needs: 
+      - bump-version
+      - release
+    steps:
+      - name: Update Hombrew formula
+        uses: dawidd6/action-homebrew-bump-formula@v3
+        with:
+          tap: guillemcastro/spotify-dl
+          formula: spotify-dl
+          token: ${{ secrets.HOMEBREW_TOKEN }}
+          tag: v${{ needs.bump-version.outputs.new_version }}
+          no_fork: true
+      
