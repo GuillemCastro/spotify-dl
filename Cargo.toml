@@ -26,8 +26,8 @@ lazy_static = "1.4"
 async-trait = "0.1"
 dirs = "5.0"
 mp3lame-encoder = { version = "0.1.5", optional = true }
-tokio-rayon = "2.1"
 futures = "0.3"
+rayon = "1.10"
 
 [features]
 default = ["mp3"]

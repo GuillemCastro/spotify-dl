@@ -10,12 +10,6 @@ use super::Samples;
 #[derive(Debug)]
 pub struct FlacEncoder;
 
-impl FlacEncoder {
-    pub fn new() -> anyhow::Result<Self> {
-        Ok(Self)
-    }
-}
-
 #[async_trait::async_trait]
 impl Encoder for FlacEncoder {
     async fn encode(&self, samples: Samples) -> anyhow::Result<EncodedStream> {

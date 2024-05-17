@@ -132,7 +132,7 @@ impl Downloader {
         tracing::info!("Encoding track: {:?}", file_name);
         pb.set_message(format!("Encoding {}", &file_name));
         let samples = Samples::new(samples, 44100, 2, 16);
-        let encoder = crate::encoder::get_encoder(options.format)?;
+        let encoder = crate::encoder::get_encoder(options.format);
         let stream = encoder.encode(samples).await?;
 
         pb.set_message(format!("Writing {}", &file_name));
