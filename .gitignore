@@ -1,6 +1,7 @@
 /target
 .vscode
 *.flac
+*.mp3
 bin
 
 debug/
