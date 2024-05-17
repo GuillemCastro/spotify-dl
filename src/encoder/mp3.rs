@@ -46,8 +46,7 @@ impl Encoder for Mp3Encoder {
             move || {
                 let samples: Vec<i16> = samples.samples.iter().map(|&x| x as i16).collect();
                 let input = InterleavedPcm(samples.as_slice());
-                let mut mp3_out_buffer = Vec::new();
-                mp3_out_buffer.reserve(mp3lame_encoder::max_required_buffer_size(samples.len()));
+                let mut mp3_out_buffer = Vec::with_capacity(mp3lame_encoder::max_required_buffer_size(samples.len()));
                 let encoded_size = mp3_encoder
                     .encode(input, mp3_out_buffer.spare_capacity_mut())
                     .map_err(|e| anyhow!("Failed to encode mp3: {}", e))?;

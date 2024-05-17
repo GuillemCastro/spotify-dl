@@ -65,7 +65,7 @@ impl Downloader {
     ) -> Result<()> {
         futures::stream::iter(tracks)
             .map(|track| {
-                self.download_track(track, &options)
+                self.download_track(track, options)
             })
             .buffer_unordered(options.parallel)
             .try_collect::<Vec<_>>()
