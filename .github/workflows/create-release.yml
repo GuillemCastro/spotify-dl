@@ -23,9 +23,9 @@ jobs:
       uses: dtolnay/rust-toolchain@stable
     - name: Bump version
       id: cargo-bump
-      run:
-        cargo install cargo-bump --force
-        cargo bump ${{ github.event.inputs.release_type }}
+      uses: tj-actions/cargo-bump@v3
+      with:
+        release_type: ${{ github.event.inputs.release_type }}
     - name: Commit changes
       uses: stefanzweifel/git-auto-commit-action@v4
       with:
