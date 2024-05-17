@@ -19,11 +19,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
+    - name: install Rust stable
+      uses: dtolnay/rust-toolchain@stable
     - name: Bump version
       id: cargo-bump
-      uses: tj-actions/cargo-bump@v3
-      with:
-        release_type: ${{ github.event.inputs.release_type }}
+      run:
+        cargo install cargo-bump --force
+        cargo bump ${{ github.event.inputs.release_type }}
     - name: Commit changes
       uses: stefanzweifel/git-auto-commit-action@v4
       with:
