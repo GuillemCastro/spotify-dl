@@ -19,9 +19,21 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
-    - name: install Rust stable
-      uses: dtolnay/rust-toolchain@stable
+    - name: Run semver-diff
+      if: inputs.release_type == ''
+      id: semver-diff
+      uses: tj-actions/semver-diff@v3
+      with:
+        initial_release_type: ${{ inputs.release_type }}
+    - name: Install stable toolchain
+      if: steps.semver-diff.outputs.release_type != '' || inputs.release_type != ''
+      uses: actions-rs/toolchain@v1
+      with:
+        profile: minimal
+        toolchain: stable
+        override: true
     - uses: actions/cache@v4
+      if: steps.semver-diff.outputs.release_type != '' || inputs.release_type != ''
       with:
         path: |
           ~/.cargo/bin/
@@ -29,17 +41,22 @@ jobs:
           ~/.cargo/registry/cache/
           ~/.cargo/git/db/
         key: ${{ runner.os }}-cargo-cargo-bump
-    - name: Clean cargo-bump
-      run: cargo uninstall cargo-bump || true
-    - name: Bump version
-      id: cargo-bump
-      uses: tj-actions/cargo-bump@v3
-      with:
-        release_type: ${{ github.event.inputs.release_type }}
+    - name: Bump Cargo.toml version
+      shell: bash
+      if: steps.semver-diff.outputs.release_type != '' || inputs.release_type != ''
+      working-directory: '.'
+      run: |
+        cargo install cargo-bump --force
+        if [[ -z "${{ inputs.release_type }}" ]]; then
+          cargo bump ${{ steps.semver-diff.outputs.release_type }}
+        else
+          cargo bump ${{ inputs.release_type }}
+        fi
+        cargo update --workspace
     - name: Commit changes
       uses: stefanzweifel/git-auto-commit-action@v4
       with:
-        commit_message: "Bump version to v${{ steps.cargo-bump.outputs.new_version }}"
+        commit_message: "Bump version to v${{ steps.semver-diff.outputs.new_version }}"
         commit_user_name: "github-actions[bot]"
         commit_user_email: "github-actions[bot]@users.noreply.github.com"
         commit_author: "github-actions[bot] <github-actions[bot]@users.noreply.github.com>"
@@ -47,5 +64,5 @@ jobs:
     - name: Create tag
       uses: rickstaa/action-create-tag@v1
       with:
-        tag: v${{ steps.cargo-bump.outputs.new_version }}
-        message: "Bump version to v${{ steps.cargo-bump.outputs.new_version }}"
+        tag: v${{ steps.semver-diff.outputs.new_version }}
+        message: "Bump version to v${{ steps.semver-diff.outputs.new_version }}"
