@@ -63,11 +63,6 @@ jobs:
         commit_user_email: "github-actions[bot]@users.noreply.github.com"
         commit_author: "github-actions[bot] <github-actions[bot]@users.noreply.github.com>"
         branch: master
-    - name: Create tag
-      uses: rickstaa/action-create-tag@v1
-      with:
-        tag: v${{ steps.cargo-bump.outputs.new_version }}
-        message: "Bump version to v${{ steps.cargo-bump.outputs.new_version }}"
 
   release:
     runs-on: ubuntu-latest
@@ -78,13 +73,19 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v3
         with:
-          ref: v${{ needs.bump-version.outputs.new_version }}
+          ref: master
+      - name: Create tag
+        uses: rickstaa/action-create-tag@v1
+        with:
+          tag: v${{ needs.bump-version.outputs.new_version }}
+          message: "Bump version to v${{ needs.bump-version.outputs.new_version }}"
       - name: Update CHANGELOG
         id: changelog
         uses: requarks/changelog-action@v1
         with:
           token: ${{ github.token }}
           tag: v${{ needs.bump-version.outputs.new_version }}
+          includeInvalidCommits: true
       - name: Create Release
         uses: ncipollo/release-action@v1
         with:
