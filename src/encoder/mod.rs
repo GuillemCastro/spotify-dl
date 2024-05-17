@@ -2,10 +2,11 @@ mod flac;
 #[cfg(feature = "mp3")]
 mod mp3;
 
-use std::str::FromStr;
+use std::{path::Path, str::FromStr};
 
 use anyhow::Result;
 use lazy_static::lazy_static;
+use tokio::sync::oneshot::Sender;
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Hash)]
 pub enum Format {
@@ -54,8 +55,9 @@ pub fn get_encoder(format: Format) -> anyhow::Result<&'static Box<dyn Encoder + 
     }
 }
 
+#[async_trait::async_trait]
 pub trait Encoder {
-    fn encode(&self, samples: Samples) -> Result<EncodedStream>;
+    async fn encode(&self, samples: Samples) -> Result<EncodedStream>;
 }
 
 pub struct Samples {
@@ -85,15 +87,27 @@ impl EncodedStream {
         EncodedStream { stream }
     }
 
-    pub fn write_to_file<P: std::convert::AsRef<std::path::Path>>(&self, path: P) -> Result<()> {
+    pub async fn write_to_file<P: AsRef<Path>>(&self, path: P) -> Result<()> {
         if !path.as_ref().exists() {
-            std::fs::create_dir_all(
+            tokio::fs::create_dir_all(
                 path.as_ref()
                     .parent()
                     .ok_or(anyhow::anyhow!("Could not create path"))?,
-            )?;
+            ).await?;
         }
-        std::fs::write(path, &self.stream)?;
+        tokio::fs::write(path, &self.stream).await?;
         Ok(())
+    }
+}
+
+pub fn execute_with_result<F, T>(func: F, tx: Sender<anyhow::Result<T>>) -> impl FnOnce()
+where
+    F: FnOnce() -> anyhow::Result<T> + Send + 'static,
+    T: Send + 'static,
+{
+    move || {
+        let result = func();
+        // Ignore the error if the receiver has been dropped
+        let _ = tx.send(result);
     }
 }

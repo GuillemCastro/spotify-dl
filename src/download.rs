@@ -1,6 +1,6 @@
 use std::fmt::Write;
 use std::path::PathBuf;
-use std::sync::Arc;
+use std::time::Duration;
 
 use anyhow::Result;
 use futures::StreamExt;
@@ -100,6 +100,7 @@ impl Downloader {
         );
 
         let pb = self.progress_bar.add(ProgressBar::new(file_size as u64));
+        pb.enable_steady_tick(Duration::from_millis(100));
         pb.set_style(ProgressStyle::with_template("{spinner:.green} {msg} [{elapsed_precise}] [{wide_bar:.cyan/blue}] {bytes}/{total_bytes} ({eta})")?
             .with_key("eta", |state: &ProgressState, w: &mut dyn Write| write!(w, "{:.1}s", state.eta().as_secs_f64()).unwrap())
             .progress_chars("#>-"));
@@ -122,24 +123,23 @@ impl Downloader {
                     samples.append(&mut content);
                 }
                 SinkEvent::Finished => {
-                    pb.finish_with_message(format!("Downloaded {}", &file_name));
+                    tracing::info!("Finished downloading track: {:?}", file_name);
+                    break;
                 }
             }
         }
 
-        tracing::info!("Downloaded track: {:?}", file_name);
-
+        tracing::info!("Encoding track: {:?}", file_name);
+        pb.set_message(format!("Encoding {}", &file_name));
         let samples = Samples::new(samples, 44100, 2, 16);
+        let encoder = crate::encoder::get_encoder(options.format)?;
+        let stream = encoder.encode(samples).await?;
 
-        let format = options.format.clone();
-        tokio_rayon::spawn(move || {
-            tracing::info!("Encoding track: {:?}", file_name);
-            let encoder = crate::encoder::get_encoder(format).unwrap();
-            let stream = encoder.encode(samples).unwrap();
-            tracing::info!("Writing track: {:?} to file: {}", file_name, &path);
-            stream.write_to_file(&path).unwrap();
-        }).await;
+        pb.set_message(format!("Writing {}", &file_name));
+        tracing::info!("Writing track: {:?} to file: {}", file_name, &path);
+        stream.write_to_file(&path).await?;
 
+        pb.finish_with_message(format!("Downloaded {}", &file_name));
         Ok(())
     }
 
