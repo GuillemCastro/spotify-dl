@@ -63,6 +63,7 @@ jobs:
         commit_user_email: "github-actions[bot]@users.noreply.github.com"
         commit_author: "github-actions[bot] <github-actions[bot]@users.noreply.github.com>"
         branch: master
+        tagging_message: v${{ steps.cargo-bump.outputs.new_version }}
 
   release:
     runs-on: ubuntu-latest
@@ -73,12 +74,7 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
-      - name: Create tag
-        uses: rickstaa/action-create-tag@v1.7.2
-        with:
-          tag: v${{ needs.bump-version.outputs.new_version }}
-          message: "Bump version to v${{ needs.bump-version.outputs.new_version }}"
+          ref: v${{ needs.bump-version.outputs.new_version }}
       - name: Update CHANGELOG
         id: changelog
         uses: requarks/changelog-action@v1
