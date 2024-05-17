@@ -21,6 +21,16 @@ jobs:
     - uses: actions/checkout@v4
     - name: install Rust stable
       uses: dtolnay/rust-toolchain@stable
+    - uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cargo/bin/
+          ~/.cargo/registry/index/
+          ~/.cargo/registry/cache/
+          ~/.cargo/git/db/
+        key: ${{ runner.os }}-cargo-cargo-bump
+    - name: Clean cargo-bump
+      run: cargo uninstall cargo-bump || true
     - name: Bump version
       id: cargo-bump
       uses: tj-actions/cargo-bump@v3
