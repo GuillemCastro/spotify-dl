@@ -54,8 +54,8 @@ pub fn get_encoder(format: Format) -> &'static dyn Encoder {
 }
 
 #[async_trait::async_trait]
-pub trait Encoder {
-    async fn encode(&self, samples: Samples) -> Result<EncodedStream>;
+pub trait Encoder: Sync {
+    async fn encode(&self, samples: &Samples, metadata: &crate::track::TrackMetadata, output_path: &str) -> Result<()>;
 }
 
 pub struct Samples {

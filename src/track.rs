@@ -93,7 +93,24 @@ impl Track {
             .await
             .map_err(|_| anyhow::anyhow!("Failed to get album"))?;
 
-        Ok(TrackMetadata::from(metadata, artists, album))
+        // Fetch cover image bytes if available
+        let cover_image = if let Some(cover) = album.covers.first() {
+            let file_id_hex = hex::encode(cover.0);
+            let url = format!("https://i.scdn.co/image/{}", file_id_hex);
+            match reqwest::get(&url).await {
+                Ok(response) if response.status().is_success() => {
+                    match response.bytes().await {
+                        Ok(bytes) => Some(bytes.to_vec()),
+                        Err(_) => None,
+                    }
+                }
+                _ => None,
+            }
+        } else {
+            None
+        };
+
+        Ok(TrackMetadata::from(metadata, artists, album, cover_image))
     }
 }
 
@@ -178,6 +195,7 @@ pub struct TrackMetadata {
     pub track_name: String,
     pub album: AlbumMetadata,
     pub duration: i32,
+    pub cover_image: Option<Vec<u8>>,
 }
 
 impl TrackMetadata {
@@ -185,11 +203,13 @@ impl TrackMetadata {
         track: librespot::metadata::Track,
         artists: Vec<librespot::metadata::Artist>,
         album: librespot::metadata::Album,
+        cover_image: Option<Vec<u8>>,
     ) -> Self {
         let artists = artists
             .iter()
             .map(|artist| ArtistMetadata::from(artist.clone()))
             .collect();
+
         let album = AlbumMetadata::from(album);
 
         TrackMetadata {
@@ -197,6 +217,7 @@ impl TrackMetadata {
             track_name: track.name.clone(),
             album,
             duration: track.duration,
+            cover_image,
         }
     }
 }

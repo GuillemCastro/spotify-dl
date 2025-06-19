@@ -77,7 +77,7 @@ impl Downloader {
     #[tracing::instrument(name = "download_track", skip(self))]
     async fn download_track(&self, track: Track, options: &DownloadOptions) -> Result<()> {
         let metadata = track.metadata(&self.session).await?;
-        tracing::info!("Downloading track: {:?}", metadata);
+        tracing::info!("Downloading track: {:?}", metadata.track_name);
 
         let file_name = self.get_file_name(&metadata);
         let path = options
@@ -88,7 +88,12 @@ impl Downloader {
             .ok_or(anyhow::anyhow!("Could not set the output path"))?
             .to_string();
 
-        let (sink, mut sink_channel) = ChannelSink::new(metadata);
+        if std::path::Path::new(&path).exists() {
+            println!("File already exists, skipping: {}", path);
+            return Ok(());
+        }
+
+        let (sink, mut sink_channel) = ChannelSink::new(&metadata);
 
         let file_size = sink.get_approximate_size();
 
@@ -129,15 +134,12 @@ impl Downloader {
             }
         }
 
-        tracing::info!("Encoding track: {:?}", file_name);
-        pb.set_message(format!("Encoding {}", &file_name));
+        tracing::info!("Encoding and writing track: {:?}", file_name);
+        pb.set_message(format!("Encoding and writing {}", &file_name));
         let samples = Samples::new(samples, 44100, 2, 16);
         let encoder = crate::encoder::get_encoder(options.format);
-        let stream = encoder.encode(samples).await?;
-
-        pb.set_message(format!("Writing {}", &file_name));
-        tracing::info!("Writing track: {:?} to file: {}", file_name, &path);
-        stream.write_to_file(&path).await?;
+        let output_path = &path;
+        encoder.encode(&samples, &metadata, output_path).await?;
 
         pb.finish_with_message(format!("Downloaded {}", &file_name));
         Ok(())
