@@ -6,6 +6,7 @@ use structopt::StructOpt;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
 use tracing_subscriber::{fmt, EnvFilter};
+use std::io::{self, Write};
 
 #[derive(Debug, StructOpt)]
 #[structopt(
@@ -14,8 +15,7 @@ use tracing_subscriber::{fmt, EnvFilter};
 )]
 struct Opt {
     #[structopt(
-        help = "A list of Spotify URIs or URLs (songs, podcasts, playlists or albums)",
-        required = true
+        help = "A list of Spotify URIs or URLs (songs, podcasts, playlists or albums)"
     )]
     tracks: Vec<String>,
     #[structopt(short = "u", long = "username", help = "Your Spotify username")]
@@ -72,12 +72,20 @@ pub fn create_destination_if_required(destination: Option<String>) -> anyhow::Re
 async fn main() -> anyhow::Result<()> {
     configure_logger();
 
-    let opt = Opt::from_args();
+    let mut opt = Opt::from_args();
     create_destination_if_required(opt.destination.clone())?;
 
     if opt.tracks.is_empty() {
-        eprintln!("No tracks provided");
-        std::process::exit(1);
+        print!("Enter a Spotify URL or URI: ");
+        io::stdout().flush().unwrap();
+        let mut input = String::new();
+        io::stdin().read_line(&mut input).unwrap();
+        let input = input.trim();
+        if input.is_empty() {
+            eprintln!("No tracks provided");
+            std::process::exit(1);
+        }
+        opt.tracks.push(input.to_string());
     }
 
     if opt.compression.is_some() {
