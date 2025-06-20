@@ -6,6 +6,7 @@ use structopt::StructOpt;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
 use tracing_subscriber::{fmt, EnvFilter};
+use std::io::{self, Write};
 
 #[derive(Debug, StructOpt)]
 #[structopt(
@@ -14,12 +15,11 @@ use tracing_subscriber::{fmt, EnvFilter};
 )]
 struct Opt {
     #[structopt(
-        help = "A list of Spotify URIs or URLs (songs, podcasts, playlists or albums)",
-        required = true
+        help = "A list of Spotify URIs or URLs (songs, podcasts, playlists or albums)"
     )]
     tracks: Vec<String>,
     #[structopt(short = "u", long = "username", help = "Your Spotify username")]
-    username: String,
+    username: Option<String>,
     #[structopt(short = "p", long = "password", help = "Your Spotify password")]
     password: Option<String>,
     #[structopt(
@@ -45,8 +45,8 @@ struct Opt {
     #[structopt(
         short = "f",
         long = "format",
-        help = "The format to download the tracks in. Default is flac.",
-        default_value = "flac"
+        help = "The format to download the tracks in. Default is mp3.",
+        default_value = "mp3"
     )]
     format: Format
 }
@@ -72,20 +72,34 @@ pub fn create_destination_if_required(destination: Option<String>) -> anyhow::Re
 async fn main() -> anyhow::Result<()> {
     configure_logger();
 
-    let opt = Opt::from_args();
+    let mut opt = Opt::from_args();
     create_destination_if_required(opt.destination.clone())?;
 
     if opt.tracks.is_empty() {
-        eprintln!("No tracks provided");
-        std::process::exit(1);
+        print!("Enter a Spotify URL or URI: ");
+        io::stdout().flush().unwrap();
+        let mut input = String::new();
+        io::stdin().read_line(&mut input).unwrap();
+        let input = input.trim();
+        if input.is_empty() {
+            eprintln!("No tracks provided");
+            std::process::exit(1);
+        }
+        opt.tracks.push(input.to_string());
     }
 
     if opt.compression.is_some() {
         eprintln!("Compression level is not supported yet. It will be ignored.");
     }
 
-    let session = create_session(opt.username, opt.password).await?;
+    let user_name = opt.username.or_else(|| {
+        println!("No username provided via arguments. Attempting to fetch from latest credentials cache.");
+        std::fs::read_to_string("credentials.json").ok()
+            .and_then(|s| serde_json::from_str::<serde_json::Value>(&s).ok())
+            .and_then(|v| v.get("username")?.as_str().map(|s| s.to_string()))
+    });
 
+    let session = create_session(user_name.unwrap(), opt.password).await?;
     let track = get_tracks(opt.tracks, &session).await?;
 
     let downloader = Downloader::new(session);
