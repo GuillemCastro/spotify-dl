@@ -19,7 +19,7 @@ struct Opt {
     )]
     tracks: Vec<String>,
     #[structopt(short = "u", long = "username", help = "Your Spotify username")]
-    username: String,
+    username: Option<String>,
     #[structopt(short = "p", long = "password", help = "Your Spotify password")]
     password: Option<String>,
     #[structopt(
@@ -45,8 +45,8 @@ struct Opt {
     #[structopt(
         short = "f",
         long = "format",
-        help = "The format to download the tracks in. Default is flac.",
-        default_value = "flac"
+        help = "The format to download the tracks in. Default is mp3.",
+        default_value = "mp3"
     )]
     format: Format
 }
@@ -92,8 +92,14 @@ async fn main() -> anyhow::Result<()> {
         eprintln!("Compression level is not supported yet. It will be ignored.");
     }
 
-    let session = create_session(opt.username, opt.password).await?;
+    let user_name = opt.username.or_else(|| {
+        println!("No username provided via arguments. Attempting to fetch from latest credentials cache.");
+        std::fs::read_to_string("credentials.json").ok()
+            .and_then(|s| serde_json::from_str::<serde_json::Value>(&s).ok())
+            .and_then(|v| v.get("username")?.as_str().map(|s| s.to_string()))
+    });
 
+    let session = create_session(user_name.unwrap(), opt.password).await?;
     let track = get_tracks(opt.tracks, &session).await?;
 
     let downloader = Downloader::new(session);

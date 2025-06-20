@@ -2,8 +2,8 @@ mod flac;
 #[cfg(feature = "mp3")]
 mod mp3;
 
+use bytes::Bytes;
 use std::{path::Path, str::FromStr};
-
 use anyhow::Result;
 use tokio::sync::oneshot::Sender;
 
@@ -55,7 +55,7 @@ pub fn get_encoder(format: Format) -> &'static dyn Encoder {
 
 #[async_trait::async_trait]
 pub trait Encoder: Sync {
-    async fn encode(&self, samples: &Samples, metadata: &crate::track::TrackMetadata, output_path: &str) -> Result<()>;
+    async fn encode(&self, samples: &Samples, metadata: &crate::track::TrackMetadata, cover_image_bytes: Bytes, output_path: &str) -> Result<()>;
 }
 
 pub struct Samples {

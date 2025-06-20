@@ -15,19 +15,16 @@ pub async fn get_tracks(spotify_ids: Vec<String>, session: &Session) -> Result<V
     let mut tracks: Vec<Track> = Vec::new();
     for id in spotify_ids {
         tracing::debug!("Getting tracks for: {}", id);
-        let id = parse_uri_or_url(&id).ok_or(anyhow::anyhow!("Invalid track"))?;
-        let new_tracks = match id.audio_type {
-            librespot::core::spotify_id::SpotifyAudioType::Track => vec![Track::from_id(id)],
-            librespot::core::spotify_id::SpotifyAudioType::Podcast => vec![Track::from_id(id)],
-            librespot::core::spotify_id::SpotifyAudioType::NonPlayable => {
-                if Album::is_album(id, session).await {
-                    Album::from_id(id).get_tracks(session).await
-                } else if Playlist::is_playlist(id, session).await {
-                    Playlist::from_id(id).get_tracks(session).await
-                } else {
-                    vec![]
-                }
-            }
+        let id = parse_uri_or_url(&id).ok_or(anyhow::anyhow!("Invalid track `{id}`"))?;
+        let new_tracks = match id.item_type {
+            librespot::core::spotify_id::SpotifyItemType::Track => vec![Track::from_id(id)],
+            librespot::core::spotify_id::SpotifyItemType::Episode => vec![Track::from_id(id)],
+            librespot::core::spotify_id::SpotifyItemType::Album => Album::from_id(id).get_tracks(session).await,
+            librespot::core::spotify_id::SpotifyItemType::Playlist => Playlist::from_id(id).get_tracks(session).await,
+            librespot::core::spotify_id::SpotifyItemType::Show => vec![],
+            librespot::core::spotify_id::SpotifyItemType::Artist => vec![],
+            librespot::core::spotify_id::SpotifyItemType::Local => vec![],
+            librespot::core::spotify_id::SpotifyItemType::Unknown => vec![],
         };
         tracks.extend(new_tracks);
     }
@@ -76,41 +73,24 @@ impl Track {
     }
 
     pub async fn metadata(&self, session: &Session) -> Result<TrackMetadata> {
-        let metadata = librespot::metadata::Track::get(session, self.id)
+        let metadata = librespot::metadata::Track::get(session, &self.id)
             .await
             .map_err(|_| anyhow::anyhow!("Failed to get metadata"))?;
 
         let mut artists = Vec::new();
-        for artist in &metadata.artists {
+        for artist in metadata.artists.iter() {
             artists.push(
-                librespot::metadata::Artist::get(session, *artist)
+                librespot::metadata::Artist::get(session, &artist.id)
                     .await
                     .map_err(|_| anyhow::anyhow!("Failed to get artist"))?,
             );
         }
 
-        let album = librespot::metadata::Album::get(session, metadata.album)
+        let album = librespot::metadata::Album::get(session, &metadata.album.id)
             .await
             .map_err(|_| anyhow::anyhow!("Failed to get album"))?;
 
-        // Fetch cover image bytes if available
-        let cover_image = if let Some(cover) = album.covers.first() {
-            let file_id_hex = hex::encode(cover.0);
-            let url = format!("https://i.scdn.co/image/{}", file_id_hex);
-            match reqwest::get(&url).await {
-                Ok(response) if response.status().is_success() => {
-                    match response.bytes().await {
-                        Ok(bytes) => Some(bytes.to_vec()),
-                        Err(_) => None,
-                    }
-                }
-                _ => None,
-            }
-        } else {
-            None
-        };
-
-        Ok(TrackMetadata::from(metadata, artists, album, cover_image))
+        Ok(TrackMetadata::from(metadata, artists, album))
     }
 }
 
@@ -136,19 +116,18 @@ impl Album {
     }
 
     pub async fn is_album(id: SpotifyId, session: &Session) -> bool {
-        librespot::metadata::Album::get(session, id).await.is_ok()
+        librespot::metadata::Album::get(session, &id).await.is_ok()
     }
 }
 
 #[async_trait::async_trait]
 impl TrackCollection for Album {
     async fn get_tracks(&self, session: &Session) -> Vec<Track> {
-        let album = librespot::metadata::Album::get(session, self.id)
+        let album = librespot::metadata::Album::get(session, &self.id)
             .await
             .expect("Failed to get album");
         album
-            .tracks
-            .iter()
+            .tracks()
             .map(|track| Track::from_id(*track))
             .collect()
     }
@@ -169,7 +148,7 @@ impl Playlist {
     }
 
     pub async fn is_playlist(id: SpotifyId, session: &Session) -> bool {
-        librespot::metadata::Playlist::get(session, id)
+        librespot::metadata::Playlist::get(session, &id)
             .await
             .is_ok()
     }
@@ -178,12 +157,11 @@ impl Playlist {
 #[async_trait::async_trait]
 impl TrackCollection for Playlist {
     async fn get_tracks(&self, session: &Session) -> Vec<Track> {
-        let playlist = librespot::metadata::Playlist::get(session, self.id)
+        let playlist = librespot::metadata::Playlist::get(session, &self.id)
             .await
             .expect("Failed to get playlist");
         playlist
-            .tracks
-            .iter()
+            .tracks()
             .map(|track| Track::from_id(*track))
             .collect()
     }
@@ -195,7 +173,6 @@ pub struct TrackMetadata {
     pub track_name: String,
     pub album: AlbumMetadata,
     pub duration: i32,
-    pub cover_image: Option<Vec<u8>>,
 }
 
 impl TrackMetadata {
@@ -203,7 +180,6 @@ impl TrackMetadata {
         track: librespot::metadata::Track,
         artists: Vec<librespot::metadata::Artist>,
         album: librespot::metadata::Album,
-        cover_image: Option<Vec<u8>>,
     ) -> Self {
         let artists = artists
             .iter()
@@ -217,7 +193,6 @@ impl TrackMetadata {
             track_name: track.name.clone(),
             album,
             duration: track.duration,
-            cover_image,
         }
     }
 }
@@ -238,12 +213,16 @@ impl From<librespot::metadata::Artist> for ArtistMetadata {
 #[derive(Clone, Debug)]
 pub struct AlbumMetadata {
     pub name: String,
+    pub year: i32,
+    pub cover: Option<librespot::metadata::image::Image>,
 }
 
 impl From<librespot::metadata::Album> for AlbumMetadata {
     fn from(album: librespot::metadata::Album) -> Self {
         AlbumMetadata {
             name: album.name.clone(),
+            year: album.date.as_utc().year(),
+            cover: album.covers.first().cloned()
         }
     }
 }

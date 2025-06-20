@@ -1,6 +1,7 @@
 use flacenc::component::BitRepr;
 use flacenc::error::Verify;
 
+use bytes::Bytes;
 use super::Encoder;
 use super::Samples;
 
@@ -9,7 +10,12 @@ pub struct FlacEncoder;
 
 #[async_trait::async_trait]
 impl Encoder for FlacEncoder {
-    async fn encode(&self, samples: &Samples, metadata: &crate::track::TrackMetadata, output_path: &str) -> anyhow::Result<()> {
+    async fn encode(&self, samples: &Samples, metadata: &crate::track::TrackMetadata, cover_image_bytes: Bytes, output_path: &str) -> anyhow::Result<()> {
+
+        if !cover_image_bytes.is_empty() {
+            tracing::info!("Cover image found but not implemented in flac encoder");
+        }
+
         let file_name = &metadata.track_name;
         tracing::info!("Writing track: {:?} to file: {}", file_name, output_path);
         let source = flacenc::source::MemSource::from_samples(

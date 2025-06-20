@@ -13,7 +13,8 @@ pub async fn create_session(username: String, password: Option<String>) -> Resul
 
     cache.save_credentials(&credentials);
 
-    let (session, _) = Session::connect(session_config, credentials, Some(cache), false).await?;
+    let session = Session::new(session_config, Some(cache));
+    session.connect(credentials, false).await?;
     Ok(session)
 }
 

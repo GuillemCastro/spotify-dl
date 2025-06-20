@@ -4,6 +4,7 @@ use mp3lame_encoder::Builder;
 use mp3lame_encoder::FlushNoGap;
 use mp3lame_encoder::InterleavedPcm;
 use id3::{Version, frame::{Picture, PictureType, Frame, Content}};
+use bytes::Bytes;
 
 use super::execute_with_result;
 use super::EncodedStream;
@@ -40,7 +41,7 @@ impl Mp3Encoder {
 
 #[async_trait::async_trait]
 impl Encoder for Mp3Encoder {
-    async fn encode(&self, samples: &Samples, metadata: &crate::track::TrackMetadata, output_path: &str) -> anyhow::Result<()> {
+    async fn encode(&self, samples: &Samples, metadata: &crate::track::TrackMetadata, cover_image_bytes: Bytes, output_path: &str) -> anyhow::Result<()> {
         let file_name = &metadata.track_name;
         tracing::info!("Writing track: {:?} to file: {}", file_name, output_path);
         let stream = self.encode_raw(samples).await?;
@@ -49,21 +50,25 @@ impl Encoder for Mp3Encoder {
         // Embed tags using id3 crate
         let mut tag = id3::Tag::read_from_path(output_path).unwrap_or_else(|_| id3::Tag::new());
         tag.set_title(file_name);
-        tag.set_album(&metadata.album.name);
+
         let artists = metadata.artists.iter().map(|a| a.name.as_str()).collect::<Vec<_>>().join("\0");
         tag.set_artist(&artists);
 
+        tag.set_album(&metadata.album.name);
+
+        tag.add_frame(Frame::with_content("TDRC", Content::Text(metadata.album.year.to_string())));
+
         // Embed cover image
-        if let Some(image_bytes) = metadata.cover_image.as_deref() {
+        if !cover_image_bytes.is_empty() {
             let picture = Picture {
                 mime_type: "image/jpeg".to_string(),
                 picture_type: PictureType::CoverFront,
                 description: "cover".to_string(),
-                data: image_bytes.to_vec(),
+                data: cover_image_bytes.to_vec(),
             };
-            let frame = Frame::with_content("APIC", Content::Picture(picture));
-            tag.add_frame(frame);
+            tag.add_frame(Frame::with_content("APIC", Content::Picture(picture)));
         }
+
         tag.write_to_path(output_path, Version::Id3v24)?;
         Ok(())
     }

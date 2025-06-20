@@ -2,6 +2,7 @@ use std::fmt::Write;
 use std::path::PathBuf;
 use std::time::Duration;
 
+use bytes::Bytes;
 use anyhow::Result;
 use futures::StreamExt;
 use futures::TryStreamExt;
@@ -97,7 +98,7 @@ impl Downloader {
 
         let file_size = sink.get_approximate_size();
 
-        let (mut player, _) = Player::new(
+        let player = Player::new(
             self.player_config.clone(),
             self.session.clone(),
             self.volume_getter(),
@@ -134,12 +135,16 @@ impl Downloader {
             }
         }
 
+        tracing::info!("Fetching album cover image: {:?}", file_name);
+        let cover_image = self.get_cover_image(&metadata).await?;
+
         tracing::info!("Encoding and writing track: {:?}", file_name);
         pb.set_message(format!("Encoding and writing {}", &file_name));
         let samples = Samples::new(samples, 44100, 2, 16);
         let encoder = crate::encoder::get_encoder(options.format);
         let output_path = &path;
-        encoder.encode(&samples, &metadata, output_path).await?;
+
+        encoder.encode(&samples, &metadata, cover_image, output_path).await?;
 
         pb.finish_with_message(format!("Downloaded {}", &file_name));
         Ok(())
@@ -187,5 +192,17 @@ impl Downloader {
             }
         }
         clean
+    }
+
+    async fn get_cover_image(&self, metadata: &TrackMetadata) -> Result<Bytes>{
+        match metadata.album.cover {
+            Some(ref cover) => {
+                self.session.spclient()
+                    .get_image(&cover.id)
+                    .await
+                    .map_err(|e| anyhow::anyhow!("{:?}", e))
+            }
+            None => Err(anyhow::anyhow!("No cover art!"))
+        }
     }
 }
