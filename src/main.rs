@@ -18,10 +18,6 @@ struct Opt {
         required = true
     )]
     tracks: Vec<String>,
-    #[structopt(short = "u", long = "username", help = "Your Spotify username")]
-    username: String,
-    #[structopt(short = "p", long = "password", help = "Your Spotify password")]
-    password: Option<String>,
     #[structopt(
         short = "d",
         long = "destination",
@@ -84,7 +80,7 @@ async fn main() -> anyhow::Result<()> {
         eprintln!("Compression level is not supported yet. It will be ignored.");
     }
 
-    let session = create_session(opt.username, opt.password).await?;
+    let session = create_session().await?;
 
     let track = get_tracks(opt.tracks, &session).await?;
 

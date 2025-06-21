@@ -26,7 +26,7 @@ impl Mp3Encoder {
             anyhow::anyhow!("Failed to set number of channels for mp3 encoder: {}", e)
         })?;
         builder
-            .set_brate(mp3lame_encoder::Birtate::Kbps160)
+            .set_brate(mp3lame_encoder::Birtate::Kbps320)
             .map_err(|e| anyhow::anyhow!("Failed to set bitrate for mp3 encoder: {}", e))?;
 
         builder
