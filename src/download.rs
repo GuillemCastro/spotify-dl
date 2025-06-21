@@ -3,6 +3,10 @@ use std::path::PathBuf;
 use std::time::Duration;
 
 use anyhow::Result;
+use audiotags::Picture;
+use audiotags::Tag;
+use audiotags::TagType;
+use bytes::Bytes;
 use futures::StreamExt;
 use futures::TryStreamExt;
 use indicatif::MultiProgress;
@@ -16,9 +20,9 @@ use librespot::playback::mixer::VolumeGetter;
 use librespot::playback::player::Player;
 
 use crate::channel_sink::ChannelSink;
+use crate::channel_sink::SinkEvent;
 use crate::encoder::Format;
 use crate::encoder::Samples;
-use crate::channel_sink::SinkEvent;
 use crate::track::Track;
 use crate::track::TrackMetadata;
 
@@ -37,14 +41,19 @@ pub struct DownloadOptions {
 }
 
 impl DownloadOptions {
-    pub fn new(destination: Option<String>, compression: Option<u32>, parallel: usize, format: Format) -> Self {
+    pub fn new(
+        destination: Option<String>,
+        compression: Option<u32>,
+        parallel: usize,
+        format: Format,
+    ) -> Self {
         let destination =
             destination.map_or_else(|| std::env::current_dir().unwrap(), PathBuf::from);
         DownloadOptions {
             destination,
             compression,
             parallel,
-            format
+            format,
         }
     }
 }
@@ -64,9 +73,7 @@ impl Downloader {
         options: &DownloadOptions,
     ) -> Result<()> {
         futures::stream::iter(tracks)
-            .map(|track| {
-                self.download_track(track, options)
-            })
+            .map(|track| self.download_track(track, options))
             .buffer_unordered(options.parallel)
             .try_collect::<Vec<_>>()
             .await?;
@@ -77,7 +84,7 @@ impl Downloader {
     #[tracing::instrument(name = "download_track", skip(self))]
     async fn download_track(&self, track: Track, options: &DownloadOptions) -> Result<()> {
         let metadata = track.metadata(&self.session).await?;
-        tracing::info!("Downloading track: {:?}", metadata);
+        tracing::info!("Downloading track: {:?}", metadata.track_name);
 
         let file_name = self.get_file_name(&metadata);
         let path = options
@@ -88,11 +95,11 @@ impl Downloader {
             .ok_or(anyhow::anyhow!("Could not set the output path"))?
             .to_string();
 
-        let (sink, mut sink_channel) = ChannelSink::new(metadata);
+        let (sink, mut sink_channel) = ChannelSink::new(metadata.clone());
 
         let file_size = sink.get_approximate_size();
 
-        let (mut player, _) = Player::new(
+        let player = Player::new(
             self.player_config.clone(),
             self.session.clone(),
             self.volume_getter(),
@@ -117,7 +124,11 @@ impl Downloader {
 
         while let Some(event) = sink_channel.recv().await {
             match event {
-                SinkEvent::Write { bytes, total, mut content } => {
+                SinkEvent::Write {
+                    bytes,
+                    total,
+                    mut content,
+                } => {
                     tracing::trace!("Written {} bytes out of {}", bytes, total);
                     pb.set_position(bytes as u64);
                     samples.append(&mut content);
@@ -138,6 +149,8 @@ impl Downloader {
         pb.set_message(format!("Writing {}", &file_name));
         tracing::info!("Writing track: {:?} to file: {}", file_name, &path);
         stream.write_to_file(&path).await?;
+
+        self.store_tags(path, &metadata, options).await?;
 
         pb.finish_with_message(format!("Downloaded {}", &file_name));
         Ok(())
@@ -185,5 +198,50 @@ impl Downloader {
             }
         }
         clean
+    }
+
+    async fn store_tags(
+        &self,
+        path: String,
+        metadata: &TrackMetadata,
+        options: &DownloadOptions,
+    ) -> Result<()> {
+        let tag_type = match options.format {
+            Format::Mp3 => TagType::Id3v2,
+            Format::Flac => TagType::Flac,
+        };
+
+        if options.format == Format::Mp3 {
+            let tag = id3::Tag::new();
+            tag.write_to_path(&path, id3::Version::Id3v24)?;
+        }
+
+        let mut tag = Tag::new().with_tag_type(tag_type).read_from_path(&path)?;
+        tag.set_title(&metadata.track_name);
+
+        let artists: String = metadata.artists.first()
+            .map(|artist| artist.name.clone())
+            .unwrap_or_default();
+        tag.set_artist(&artists);
+        tag.set_album_title(&metadata.album.name);
+
+        tag.set_album_cover(Picture::new(
+            self.get_cover_image(&metadata).await?.as_ref(),
+            audiotags::MimeType::Jpeg,
+        ));
+        tag.write_to_path(&path)?;
+        Ok(())
+    }
+
+    async fn get_cover_image(&self, metadata: &TrackMetadata) -> Result<Bytes> {
+        match metadata.album.cover {
+            Some(ref cover) => self
+                .session
+                .spclient()
+                .get_image(&cover.id)
+                .await
+                .map_err(|e| anyhow::anyhow!("{:?}", e)),
+            None => Err(anyhow::anyhow!("No cover art!")),
+        }
     }
 }
