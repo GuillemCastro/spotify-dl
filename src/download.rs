@@ -14,6 +14,7 @@ use indicatif::ProgressBar;
 use indicatif::ProgressState;
 use indicatif::ProgressStyle;
 use librespot::core::session::Session;
+use librespot::playback::config::Bitrate;
 use librespot::playback::config::PlayerConfig;
 use librespot::playback::mixer::NoOpVolume;
 use librespot::playback::mixer::VolumeGetter;
@@ -60,8 +61,10 @@ impl DownloadOptions {
 
 impl Downloader {
     pub fn new(session: Session) -> Self {
+        let mut config = PlayerConfig::default();
+        config.bitrate = Bitrate::Bitrate320;
         Downloader {
-            player_config: PlayerConfig::default(),
+            player_config: config,
             session,
             progress_bar: MultiProgress::new(),
         }
