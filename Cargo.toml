@@ -11,7 +11,7 @@ description = "A command-line utility to download songs and playlists from Spoti
 
 [dependencies]
 structopt = { version = "0.3", default-features = false }
-indicatif = "0.17.11"
+indicatif = "0.18"
 librespot = { version = "0.6.0", default-features = false }
 librespot-oauth = "0.6.0"
 tokio = { version = "1", features = ["full", "tracing"] }
