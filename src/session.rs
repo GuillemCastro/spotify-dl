@@ -18,7 +18,7 @@ pub async fn create_session() -> Result<Session> {
         Some(creds) => creds,
         None => match load_credentials() {
             Ok(creds) => creds,
-            Err(e) => return Err(e.into()),
+            Err(e) => return Err(e),
         },
     };
    
