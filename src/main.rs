@@ -25,13 +25,6 @@ struct Opt {
     )]
     destination: Option<String>,
     #[structopt(
-        short = "c",
-        long = "compression",
-        help = "Setting the flac compression level from 0 (fastest, least compression) to
-8 (slowest, most compression). A value larger than 8 will be Treated as 8. Default is 4. NOT USED."
-    )]
-    compression: Option<u32>,
-    #[structopt(
         short = "t",
         long = "parallel",
         help = "Number of parallel downloads. Default is 5.",
@@ -44,7 +37,13 @@ struct Opt {
         help = "The format to download the tracks in. Default is flac.",
         default_value = "flac"
     )]
-    format: Format
+    format: Format,
+    #[structopt(
+        short = "F",
+        long = "force",
+        help = "Force download even if the file already exists"
+    )]
+    force: bool,
 }
 
 pub fn configure_logger() {
@@ -76,10 +75,6 @@ async fn main() -> anyhow::Result<()> {
         std::process::exit(1);
     }
 
-    if opt.compression.is_some() {
-        eprintln!("Compression level is not supported yet. It will be ignored.");
-    }
-
     let session = create_session().await?;
 
     let track = get_tracks(opt.tracks, &session).await?;
@@ -88,7 +83,7 @@ async fn main() -> anyhow::Result<()> {
     downloader
         .download_tracks(
             track,
-            &DownloadOptions::new(opt.destination, opt.compression, opt.parallel, opt.format),
+            &DownloadOptions::new(opt.destination, opt.parallel, opt.format, opt.force),
         )
         .await
 }

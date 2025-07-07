@@ -36,33 +36,30 @@ pub struct Downloader {
 #[derive(Debug, Clone)]
 pub struct DownloadOptions {
     pub destination: PathBuf,
-    pub compression: Option<u32>,
     pub parallel: usize,
     pub format: Format,
+    pub force: bool,
 }
 
 impl DownloadOptions {
-    pub fn new(
-        destination: Option<String>,
-        compression: Option<u32>,
-        parallel: usize,
-        format: Format,
-    ) -> Self {
+    pub fn new(destination: Option<String>, parallel: usize, format: Format, force: bool) -> Self {
         let destination =
             destination.map_or_else(|| std::env::current_dir().unwrap(), PathBuf::from);
         DownloadOptions {
             destination,
-            compression,
             parallel,
             format,
+            force,
         }
     }
 }
 
 impl Downloader {
     pub fn new(session: Session) -> Self {
-        let mut config = PlayerConfig::default();
-        config.bitrate = Bitrate::Bitrate320;
+        let config = PlayerConfig {
+            bitrate: Bitrate::Bitrate320,
+            ..Default::default()
+        };
         Downloader {
             player_config: config,
             session,
@@ -97,6 +94,14 @@ impl Downloader {
             .to_str()
             .ok_or(anyhow::anyhow!("Could not set the output path"))?
             .to_string();
+
+        if !options.force && PathBuf::from(&path).exists() {
+            tracing::info!(
+                "Skipping {}, file already exists. Use --force to force re-downloading the track",
+                &metadata.track_name
+            );
+            return Ok(());
+        }
 
         let (sink, mut sink_channel) = ChannelSink::new(metadata.clone());
 
@@ -222,14 +227,16 @@ impl Downloader {
         let mut tag = Tag::new().with_tag_type(tag_type).read_from_path(&path)?;
         tag.set_title(&metadata.track_name);
 
-        let artists: String = metadata.artists.first()
+        let artists: String = metadata
+            .artists
+            .first()
             .map(|artist| artist.name.clone())
             .unwrap_or_default();
         tag.set_artist(&artists);
         tag.set_album_title(&metadata.album.name);
 
         tag.set_album_cover(Picture::new(
-            self.get_cover_image(&metadata).await?.as_ref(),
+            self.get_cover_image(metadata).await?.as_ref(),
             audiotags::MimeType::Jpeg,
         ));
         tag.write_to_path(&path)?;
