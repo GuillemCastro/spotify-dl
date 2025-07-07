@@ -203,9 +203,6 @@ jobs:
         ref: v${{ needs.bump-version.outputs.new_version }}
     - name: install Rust stable
       uses: dtolnay/rust-toolchain@stable
-    - name: Build
-      run: | 
-        cargo build --verbose --release
     - name: Run cargo publish
       run: | 
         cargo publish --token ${{ secrets.CARGO_TOKEN }}
@@ -215,6 +212,8 @@ jobs:
     needs: 
       - bump-version
       - release
+      - linux
+      - macos
     steps:
       - name: Update Hombrew formula
         uses: dawidd6/action-homebrew-bump-formula@v5
