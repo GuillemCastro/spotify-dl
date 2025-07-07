@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.9.0] - 2025-07-07
+### :sparkles: New Features
+- [`607bf97`](https://github.com/GuillemCastro/spotify-dl/commit/607bf976283305354e2c8a99e957c9cb46b06ccf) - **downloader**: Skip existing files *(PR [#30](https://github.com/GuillemCastro/spotify-dl/pull/30) by [@GuillemCastro](https://github.com/GuillemCastro))*
+
+
 ## [v0.8.0] - 2025-07-06
 ### :sparkles: New Features
 - [`14d3e1f`](https://github.com/GuillemCastro/spotify-dl/commit/14d3e1fda34f9cc587fc64d1442cb3e5deac440a) - **downloader**: Increase bitrate to 320kbps *(PR [#28](https://github.com/GuillemCastro/spotify-dl/pull/28) by [@GuillemCastro](https://github.com/GuillemCastro))*
@@ -24,3 +29,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [v0.5.0]: https://github.com/GuillemCastro/spotify-dl/compare/v0.2.1...v0.5.0
 [v0.7.0]: https://github.com/GuillemCastro/spotify-dl/compare/v0.5.4...v0.7.0
 [v0.8.0]: https://github.com/GuillemCastro/spotify-dl/compare/v0.7.1...v0.8.0
+[v0.9.0]: https://github.com/GuillemCastro/spotify-dl/compare/v0.8.0...v0.9.0
