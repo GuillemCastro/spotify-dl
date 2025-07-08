@@ -61,19 +61,18 @@ impl Sink for ChannelSink {
     }
 
     fn write(&mut self, packet: AudioPacket, converter: &mut Converter) -> Result<(), SinkError> {
-        let data = converter.f64_to_s16(
+        let data = converter.f64_to_s32(
             packet
                 .samples()
                 .map_err(|_| SinkError::OnWrite("Failed to get samples".to_string()))?,
         );
-        let data32: Vec<i32> = data.iter().map(|el| i32::from(*el)).collect();
-        self.bytes_sent += data32.len() * std::mem::size_of::<i32>();
+        self.bytes_sent += data.len() * std::mem::size_of::<i32>();
 
         self.sender
             .send(SinkEvent::Write {
                 bytes: self.bytes_sent,
                 total: self.bytes_total,
-                content: data32,
+                content: data,
             })
             .map_err(|_| SinkError::OnWrite("Failed to send event".to_string()))?;
 
