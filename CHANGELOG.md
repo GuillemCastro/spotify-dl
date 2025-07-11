@@ -4,6 +4,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.9.1] - 2025-07-11
+### :sparkles: New Features
+- [`1ac214f`](https://github.com/GuillemCastro/spotify-dl/commit/1ac214f896e9422745c165a53ade152719803978) - **encoding**: Use 32 bit audio *(PR [#32](https://github.com/GuillemCastro/spotify-dl/pull/32) by [@GuillemCastro](https://github.com/GuillemCastro))*
+
+### :bug: Bug Fixes
+- [`9f59dcc`](https://github.com/GuillemCastro/spotify-dl/commit/9f59dcc7951c75cda456c5d99957bb9841c1bc55) - **flac**: flacenc supports max 24-bit audio *(PR [#34](https://github.com/GuillemCastro/spotify-dl/pull/34) by [@GuillemCastro](https://github.com/GuillemCastro))*
+
+### :wrench: Chores
+- [`2947214`](https://github.com/GuillemCastro/spotify-dl/commit/29472147655f7f6780949711aaaef055481ec2e8) - **deps**: Optimize dependencies & upgrade to 2024 edition *(PR [#33](https://github.com/GuillemCastro/spotify-dl/pull/33) by [@GuillemCastro](https://github.com/GuillemCastro))*
+
+
 ## [v0.9.0] - 2025-07-07
 ### :sparkles: New Features
 - [`607bf97`](https://github.com/GuillemCastro/spotify-dl/commit/607bf976283305354e2c8a99e957c9cb46b06ccf) - **downloader**: Skip existing files *(PR [#30](https://github.com/GuillemCastro/spotify-dl/pull/30) by [@GuillemCastro](https://github.com/GuillemCastro))*
@@ -30,3 +41,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [v0.7.0]: https://github.com/GuillemCastro/spotify-dl/compare/v0.5.4...v0.7.0
 [v0.8.0]: https://github.com/GuillemCastro/spotify-dl/compare/v0.7.1...v0.8.0
 [v0.9.0]: https://github.com/GuillemCastro/spotify-dl/compare/v0.8.0...v0.9.0
+[v0.9.1]: https://github.com/GuillemCastro/spotify-dl/compare/v0.9.0...v0.9.1
