@@ -71,6 +71,14 @@ impl Samples {
             bits_per_sample,
         }
     }
+
+    pub fn to_s24(&self) -> Vec<i32> {
+        self.samples
+            .iter()
+            .map(|&sample| (sample >> 8) as i32) // Convert to S24 by shifting down
+            .collect()
+    }
+
 }
 
 pub struct EncodedStream {
