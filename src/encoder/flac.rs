@@ -13,9 +13,9 @@ pub struct FlacEncoder;
 impl Encoder for FlacEncoder {
     async fn encode(&self, samples: Samples) -> anyhow::Result<EncodedStream> {
         let source = flacenc::source::MemSource::from_samples(
-            &samples.samples,
+            &samples.to_s24(),
             samples.channels as usize,
-            samples.bits_per_sample as usize,
+            flacenc::constant::MAX_BITS_PER_SAMPLE,
             samples.sample_rate as usize,
         );
 
