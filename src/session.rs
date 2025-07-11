@@ -3,7 +3,7 @@ use librespot::core::cache::Cache;
 use librespot::core::config::SessionConfig;
 use librespot::core::session::Session;
 use librespot::discovery::Credentials;
-use librespot_oauth::get_access_token;
+use librespot::oauth::get_access_token;
 
 const SPOTIFY_CLIENT_ID: &str = "65b708073fc0480ea92a077233ca87bd";
 const SPOTIFY_REDIRECT_URI: &str = "http://127.0.0.1:8898/login";
@@ -21,7 +21,7 @@ pub async fn create_session() -> Result<Session> {
             Err(e) => return Err(e),
         },
     };
-   
+
     cache.save_credentials(&credentials);
 
     let session = Session::new(session_config, Some(cache));

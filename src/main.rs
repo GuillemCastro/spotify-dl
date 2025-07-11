@@ -5,7 +5,7 @@ use spotify_dl::track::get_tracks;
 use structopt::StructOpt;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
-use tracing_subscriber::{fmt, EnvFilter};
+use tracing_subscriber::{EnvFilter, fmt};
 
 #[derive(Debug, StructOpt)]
 #[structopt(

@@ -2,8 +2,8 @@ use anyhow::Result;
 use lazy_static::lazy_static;
 use librespot::core::session::Session;
 use librespot::core::spotify_id::SpotifyId;
-use librespot::metadata::image::Image;
 use librespot::metadata::Metadata;
+use librespot::metadata::image::Image;
 use regex::Regex;
 
 #[async_trait::async_trait]
@@ -20,8 +20,12 @@ pub async fn get_tracks(spotify_ids: Vec<String>, session: &Session) -> Result<V
         let new_tracks = match id.item_type {
             librespot::core::spotify_id::SpotifyItemType::Track => vec![Track::from_id(id)],
             librespot::core::spotify_id::SpotifyItemType::Episode => vec![Track::from_id(id)],
-            librespot::core::spotify_id::SpotifyItemType::Album => Album::from_id(id).get_tracks(session).await,
-            librespot::core::spotify_id::SpotifyItemType::Playlist => Playlist::from_id(id).get_tracks(session).await,
+            librespot::core::spotify_id::SpotifyItemType::Album => {
+                Album::from_id(id).get_tracks(session).await
+            }
+            librespot::core::spotify_id::SpotifyItemType::Playlist => {
+                Playlist::from_id(id).get_tracks(session).await
+            }
             _ => {
                 tracing::warn!("Unsupported item type: {:?}", id.item_type);
                 vec![]
@@ -127,10 +131,7 @@ impl TrackCollection for Album {
         let album = librespot::metadata::Album::get(session, &self.id)
             .await
             .expect("Failed to get album");
-        album
-            .tracks()
-            .map(|track| Track::from_id(*track))
-            .collect()
+        album.tracks().map(|track| Track::from_id(*track)).collect()
     }
 }
 
@@ -220,7 +221,7 @@ impl From<librespot::metadata::Album> for AlbumMetadata {
     fn from(album: librespot::metadata::Album) -> Self {
         AlbumMetadata {
             name: album.name.clone(),
-            cover: album.covers.first().cloned()
+            cover: album.covers.first().cloned(),
         }
     }
 }

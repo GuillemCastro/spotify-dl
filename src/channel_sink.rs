@@ -6,7 +6,11 @@ use librespot::playback::decoder::AudioPacket;
 use crate::track::TrackMetadata;
 
 pub enum SinkEvent {
-    Write { bytes: usize, total: usize, content: Vec<i32> },
+    Write {
+        bytes: usize,
+        total: usize,
+        content: Vec<i32>,
+    },
     Finished,
 }
 pub type SinkEventChannel = tokio::sync::mpsc::UnboundedReceiver<SinkEvent>;
@@ -18,7 +22,6 @@ pub struct ChannelSink {
 }
 
 impl ChannelSink {
-
     pub fn new(track: TrackMetadata) -> (Self, SinkEventChannel) {
         let (tx, rx) = tokio::sync::mpsc::unbounded_channel();
 

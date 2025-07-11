@@ -5,7 +5,6 @@ mod mp3;
 use std::{path::Path, str::FromStr};
 
 use anyhow::Result;
-use tokio::sync::oneshot::Sender;
 
 use self::{flac::FlacEncoder, mp3::Mp3Encoder};
 
@@ -30,7 +29,6 @@ impl FromStr for Format {
 }
 
 impl Format {
-
     pub fn extension(&self) -> &'static str {
         match self {
             Format::Flac => "flac",
@@ -38,7 +36,6 @@ impl Format {
             Format::Mp3 => "mp3",
         }
     }
-
 }
 
 const FLAC_ENCODER: &FlacEncoder = &FlacEncoder;
@@ -91,21 +88,10 @@ impl EncodedStream {
                 path.as_ref()
                     .parent()
                     .ok_or(anyhow::anyhow!("Could not create path"))?,
-            ).await?;
+            )
+            .await?;
         }
         tokio::fs::write(path, &self.stream).await?;
         Ok(())
-    }
-}
-
-pub fn execute_with_result<F, T>(func: F, tx: Sender<anyhow::Result<T>>) -> impl FnOnce()
-where
-    F: FnOnce() -> anyhow::Result<T> + Send + 'static,
-    T: Send + 'static,
-{
-    move || {
-        let result = func();
-        // Ignore the error if the receiver has been dropped
-        let _ = tx.send(result);
     }
 }
