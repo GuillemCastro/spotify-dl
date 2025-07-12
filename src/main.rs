@@ -1,11 +1,9 @@
 use spotify_dl::download::{DownloadOptions, Downloader};
 use spotify_dl::encoder::Format;
+use spotify_dl::log;
 use spotify_dl::session::create_session;
 use spotify_dl::track::get_tracks;
 use structopt::StructOpt;
-use tracing_subscriber::layer::SubscriberExt;
-use tracing_subscriber::util::SubscriberInitExt;
-use tracing_subscriber::{EnvFilter, fmt};
 
 #[derive(Debug, StructOpt)]
 #[structopt(
@@ -46,13 +44,6 @@ struct Opt {
     force: bool,
 }
 
-pub fn configure_logger() {
-    tracing_subscriber::registry()
-        .with(fmt::layer())
-        .with(EnvFilter::from_default_env())
-        .init();
-}
-
 pub fn create_destination_if_required(destination: Option<String>) -> anyhow::Result<()> {
     if let Some(destination) = destination {
         if !std::path::Path::new(&destination).exists() {
@@ -65,7 +56,7 @@ pub fn create_destination_if_required(destination: Option<String>) -> anyhow::Re
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    configure_logger();
+    log::configure_logger()?;
 
     let opt = Opt::from_args();
     create_destination_if_required(opt.destination.clone())?;
