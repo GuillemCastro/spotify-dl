@@ -37,3 +37,10 @@ once_cell = "1.21.3"
 [features]
 default = ["mp3"]
 mp3 = ["dep:mp3lame-encoder"]
+
+[profile.release]
+# optimize for the smallest binary size
+opt-level = "z"
+lto = true
+strip = true
+debug = false
