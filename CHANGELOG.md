@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.9.2] - 2025-07-12
+### :recycle: Refactors
+- [`2a9f7a3`](https://github.com/GuillemCastro/spotify-dl/commit/2a9f7a382fc345689c18fed8dd5a827490991021) - handle failures loading tracks *(PR [#36](https://github.com/GuillemCastro/spotify-dl/pull/36) by [@GuillemCastro](https://github.com/GuillemCastro))*
+
+### :wrench: Chores
+- [`7e883b7`](https://github.com/GuillemCastro/spotify-dl/commit/7e883b7262f8fe5fdf03e38b08ba0cc0a0e2dac3) - reduce binary size *(PR [#37](https://github.com/GuillemCastro/spotify-dl/pull/37) by [@GuillemCastro](https://github.com/GuillemCastro))*
+
+
 ## [v0.9.1] - 2025-07-11
 ### :sparkles: New Features
 - [`1ac214f`](https://github.com/GuillemCastro/spotify-dl/commit/1ac214f896e9422745c165a53ade152719803978) - **encoding**: Use 32 bit audio *(PR [#32](https://github.com/GuillemCastro/spotify-dl/pull/32) by [@GuillemCastro](https://github.com/GuillemCastro))*
@@ -42,3 +50,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [v0.8.0]: https://github.com/GuillemCastro/spotify-dl/compare/v0.7.1...v0.8.0
 [v0.9.0]: https://github.com/GuillemCastro/spotify-dl/compare/v0.8.0...v0.9.0
 [v0.9.1]: https://github.com/GuillemCastro/spotify-dl/compare/v0.9.0...v0.9.1
+[v0.9.2]: https://github.com/GuillemCastro/spotify-dl/compare/v0.9.1...v0.9.2
