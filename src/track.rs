@@ -1,10 +1,20 @@
+use std::pin::Pin;
+use std::sync::Arc;
+
 use anyhow::Result;
+use bytes::Bytes;
 use lazy_static::lazy_static;
 use librespot::core::session::Session;
 use librespot::core::spotify_id::SpotifyId;
 use librespot::metadata::Metadata;
 use librespot::metadata::image::Image;
 use regex::Regex;
+
+use crate::encoder::tags::Tags;
+use crate::utils::clean_invalid_characters;
+
+pub type AsyncFn<T> =
+    Arc<dyn Fn() -> Pin<Box<dyn Future<Output = Option<T>> + Send>> + Send + Sync>;
 
 #[async_trait::async_trait]
 trait TrackCollection {
@@ -95,7 +105,25 @@ impl Track {
             .await
             .map_err(|_| anyhow::anyhow!("Failed to get album"))?;
 
-        Ok(TrackMetadata::from(metadata, artists, album))
+        let covers = album.covers.clone();
+        let session = session.clone();
+
+        let image_retriever: AsyncFn<Bytes> = Arc::new(move || {
+            let covers = covers.clone();
+            let session = session.clone();
+
+            Box::pin(async move {
+                let cover = covers.first()?;
+                session.spclient().get_image(&cover.id).await.ok()
+            })
+        });
+
+        Ok(TrackMetadata::from(
+            metadata,
+            artists,
+            album,
+            image_retriever,
+        ))
     }
 }
 
@@ -169,12 +197,13 @@ impl TrackCollection for Playlist {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct TrackMetadata {
     pub artists: Vec<ArtistMetadata>,
     pub track_name: String,
     pub album: AlbumMetadata,
     pub duration: i32,
+    image_retriever: AsyncFn<Bytes>,
 }
 
 impl TrackMetadata {
@@ -182,6 +211,7 @@ impl TrackMetadata {
         track: librespot::metadata::Track,
         artists: Vec<librespot::metadata::Artist>,
         album: librespot::metadata::Album,
+        image_retriever: AsyncFn<Bytes>,
     ) -> Self {
         let artists = artists
             .iter()
@@ -194,7 +224,53 @@ impl TrackMetadata {
             track_name: track.name.clone(),
             album,
             duration: track.duration,
+            image_retriever,
         }
+    }
+
+    pub fn approx_size(&self) -> usize {
+        let duration = self.duration / 1000;
+        let sample_rate = 44100;
+        let channels = 2;
+        let bits_per_sample = 32;
+        let bytes_per_sample = bits_per_sample / 8;
+        (duration as usize) * sample_rate * channels * bytes_per_sample
+    }
+
+    pub async fn tags(&self) -> Result<Tags> {
+        let tags = Tags {
+            title: self.track_name.clone(),
+            artists: self.artists.iter().map(|a| a.name.clone()).collect(),
+            album_title: self.album.name.clone(),
+            album_cover: (self.image_retriever)().await,
+        };
+        Ok(tags)
+    }
+}
+
+impl ToString for TrackMetadata {
+    fn to_string(&self) -> String {
+        if self.artists.len() > 3 {
+            let artists_name = self
+                .artists
+                .iter()
+                .take(3)
+                .map(|artist| artist.name.clone())
+                .collect::<Vec<String>>()
+                .join(", ");
+            return clean_invalid_characters(format!(
+                "{}, ... - {}",
+                artists_name, self.track_name
+            ));
+        }
+
+        let artists_name = self
+            .artists
+            .iter()
+            .map(|artist| artist.name.clone())
+            .collect::<Vec<String>>()
+            .join(", ");
+        clean_invalid_characters(format!("{} - {}", artists_name, self.track_name))
     }
 }
 

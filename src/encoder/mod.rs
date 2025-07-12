@@ -1,6 +1,7 @@
 mod flac;
 #[cfg(feature = "mp3")]
 mod mp3;
+pub mod tags;
 
 use std::{path::Path, str::FromStr};
 
@@ -79,6 +80,17 @@ impl Samples {
             .collect()
     }
 
+}
+
+impl Default for Samples {
+    fn default() -> Self {
+        Samples {
+            samples: Vec::new(),
+            sample_rate: 44100,
+            channels: 2,
+            bits_per_sample: 32,
+        }
+    }
 }
 
 pub struct EncodedStream {
