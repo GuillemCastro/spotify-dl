@@ -70,6 +70,7 @@ fn parse_url(track_url: &str) -> Option<SpotifyId> {
 #[derive(Clone, Debug)]
 pub struct Track {
     pub id: SpotifyId,
+    pub position: Option<usize>,
 }
 
 lazy_static! {
@@ -80,11 +81,15 @@ lazy_static! {
 impl Track {
     pub fn new(track: &str) -> Result<Self> {
         let id = parse_uri_or_url(track).ok_or(anyhow::anyhow!("Invalid track"))?;
-        Ok(Track { id })
+        Ok(Track { id, position: None })
     }
 
     pub fn from_id(id: SpotifyId) -> Self {
-        Track { id }
+        Track { id, position: None }
+    }
+
+    pub fn from_id_with_position(id: SpotifyId, position: usize) -> Self {
+        Track { id, position: Some(position) }
     }
 
     pub async fn metadata(&self, session: &Session) -> Result<TrackMetadata> {
@@ -118,10 +123,13 @@ impl Track {
             })
         });
 
+        let position = self.position.or(Some(metadata.number as usize));
+
         Ok(TrackMetadata::from(
             metadata,
             artists,
             album,
+            position,
             image_retriever,
         ))
     }
@@ -190,9 +198,11 @@ impl TrackCollection for Playlist {
         let playlist = librespot::metadata::Playlist::get(session, &self.id)
             .await
             .expect("Failed to get playlist");
+
         playlist
             .tracks()
-            .map(|track| Track::from_id(*track))
+            .enumerate()
+            .map(|(i, track)| Track::from_id_with_position(*track, i + 1))
             .collect()
     }
 }
@@ -203,6 +213,7 @@ pub struct TrackMetadata {
     pub track_name: String,
     pub album: AlbumMetadata,
     pub duration: i32,
+    pub position: Option<usize>,
     image_retriever: AsyncFn<Bytes>,
 }
 
@@ -211,6 +222,7 @@ impl TrackMetadata {
         track: librespot::metadata::Track,
         artists: Vec<librespot::metadata::Artist>,
         album: librespot::metadata::Album,
+        position: Option<usize>,
         image_retriever: AsyncFn<Bytes>,
     ) -> Self {
         let artists = artists
@@ -224,6 +236,7 @@ impl TrackMetadata {
             track_name: track.name.clone(),
             album,
             duration: track.duration,
+            position,
             image_retriever,
         }
     }
@@ -243,6 +256,7 @@ impl TrackMetadata {
             artists: self.artists.iter().map(|a| a.name.clone()).collect(),
             album_title: self.album.name.clone(),
             album_cover: (self.image_retriever)().await,
+            position: self.position,
         };
         Ok(tags)
     }
@@ -250,6 +264,8 @@ impl TrackMetadata {
 
 impl ToString for TrackMetadata {
     fn to_string(&self) -> String {
+        let position_string = self.position.map_or(String::from(""), |i| format!("{:02}: ", i));
+
         if self.artists.len() > 3 {
             let artists_name = self
                 .artists
@@ -259,8 +275,8 @@ impl ToString for TrackMetadata {
                 .collect::<Vec<String>>()
                 .join(", ");
             return clean_invalid_characters(format!(
-                "{}, ... - {}",
-                artists_name, self.track_name
+                "{}{}, ... - {}",
+                position_string, artists_name, self.track_name
             ));
         }
 
@@ -270,7 +286,7 @@ impl ToString for TrackMetadata {
             .map(|artist| artist.name.clone())
             .collect::<Vec<String>>()
             .join(", ");
-        clean_invalid_characters(format!("{} - {}", artists_name, self.track_name))
+        clean_invalid_characters(format!("{}{} - {}", position_string, artists_name, self.track_name))
     }
 }
 
