@@ -11,6 +11,7 @@ pub struct Tags {
     pub artists: Vec<String>,
     pub album_title: String,
     pub album_cover: Option<Bytes>,
+    pub position: Option<usize>,
 }
 
 pub async fn store_tags(path: String, tags: &Tags, format: Format) -> Result<()> {
@@ -33,6 +34,10 @@ pub async fn store_tags(path: String, tags: &Tags, format: Format) -> Result<()>
         .to_string();
     tag.set_artist(&artists);
     tag.set_album_title(&tags.album_title);
+
+    if let Some(track_number) = &tags.position {
+        tag.set_track_number(*track_number as u16);
+    }
 
     if let Some(cover) = &tags.album_cover {
         tag.set_album_cover(Picture::new(
