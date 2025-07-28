@@ -47,9 +47,10 @@ USAGE:
     spotify-dl.exe [FLAGS] [OPTIONS] <tracks>...
 
 FLAGS:
-    -F, --force      Force download even if the file already exists
-    -h, --help       Prints help information
-    -V, --version    Prints version information
+    -F, --force         Force download even if the file already exists
+    -h, --help          Prints help information
+    -r, --rate-limit    Rate limit downloads to one track every minute
+    -V, --version       Prints version information
 
 OPTIONS:
     -d, --destination <destination>    The directory where the songs will be downloaded
@@ -78,6 +79,11 @@ spotify-dl -u YOUR_USER -p YOUR_PASS https://open.spotify.com/playlist/PLAYLIST_
 Save as MP3 to a custom folder:
 ```
 spotify-dl --format flac --destination ~/Music/Spotify https://open.spotify.com/album/ALBUM_ID
+```
+
+Download a playlist with rate limiting:
+```
+spotify-dl --rate-limit https://open.spotify.com/playlist/PLAYLIST_ID
 ```
 
 ## 📄 License
