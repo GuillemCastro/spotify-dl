@@ -72,11 +72,11 @@ impl Downloader {
     async fn download_track(&self, track: Track, options: &DownloadOptions) -> Result<()> {
         let metadata = track.metadata(&self.session).await?;
         tracing::info!("Downloading track: {:?}", metadata.track_name);
-
+        
+        let filename = format!("{}.{}", metadata.to_string(), options.format.extension());
         let path = options
             .destination
-            .join(metadata.to_string())
-            .with_extension(options.format.extension())
+            .join(&filename)
             .to_str()
             .ok_or(anyhow::anyhow!("Could not set the output path"))?
             .to_string();
