@@ -77,7 +77,7 @@ spotify-dl -u YOUR_USER -p YOUR_PASS https://open.spotify.com/playlist/PLAYLIST_
 
 Save as MP3 to a custom folder:
 ```
-spotify-dl --format flac --destination ~/Music/Spotify https://open.spotify.com/album/ALBUM_ID
+spotify-dl --format mp3 --destination ~/Music/Spotify https://open.spotify.com/album/ALBUM_ID
 ```
 
 ## 📄 License
