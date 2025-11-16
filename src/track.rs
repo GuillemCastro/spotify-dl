@@ -5,7 +5,7 @@ use anyhow::Result;
 use bytes::Bytes;
 use lazy_static::lazy_static;
 use librespot::core::session::Session;
-use librespot::core::spotify_id::SpotifyId;
+use librespot::core::SpotifyUri;
 use librespot::metadata::Metadata;
 use librespot::metadata::image::Image;
 use regex::Regex;
@@ -27,17 +27,17 @@ pub async fn get_tracks(spotify_ids: Vec<String>, session: &Session) -> Result<V
     for id in spotify_ids {
         tracing::debug!("Getting tracks for: {}", id);
         let id = parse_uri_or_url(&id).ok_or(anyhow::anyhow!("Invalid track"))?;
-        let new_tracks = match id.item_type {
-            librespot::core::spotify_id::SpotifyItemType::Track => vec![Track::from_id(id)],
-            librespot::core::spotify_id::SpotifyItemType::Episode => vec![Track::from_id(id)],
-            librespot::core::spotify_id::SpotifyItemType::Album => {
+        let new_tracks = match id {
+            librespot::core::SpotifyUri::Track { id: _ } => vec![Track::from_id(id)],
+            librespot::core::SpotifyUri::Episode { id: _ } => vec![Track::from_id(id)],
+            librespot::core::SpotifyUri::Album { id: _ } => {
                 Album::from_id(id).get_tracks(session).await
             }
-            librespot::core::spotify_id::SpotifyItemType::Playlist => {
+            librespot::core::SpotifyUri::Playlist { id: _, .. }=> {
                 Playlist::from_id(id).get_tracks(session).await
             }
             _ => {
-                tracing::warn!("Unsupported item type: {:?}", id.item_type);
+                tracing::warn!("Unsupported item type: {:?}", id.item_type());
                 vec![]
             }
         };
@@ -47,29 +47,29 @@ pub async fn get_tracks(spotify_ids: Vec<String>, session: &Session) -> Result<V
     Ok(tracks)
 }
 
-fn parse_uri_or_url(track: &str) -> Option<SpotifyId> {
+fn parse_uri_or_url(track: &str) -> Option<SpotifyUri> {
     parse_uri(track).or_else(|| parse_url(track))
 }
 
-fn parse_uri(track_uri: &str) -> Option<SpotifyId> {
-    let res = SpotifyId::from_uri(track_uri);
+fn parse_uri(track_uri: &str) -> Option<SpotifyUri> {
+    let res = SpotifyUri::from_uri(track_uri);
     tracing::info!("Parsed URI: {:?}", res);
     res.ok()
 }
 
-fn parse_url(track_url: &str) -> Option<SpotifyId> {
+fn parse_url(track_url: &str) -> Option<SpotifyUri> {
     let results = SPOTIFY_URL_REGEX.captures(track_url)?;
     let uri = format!(
         "spotify:{}:{}",
         results.get(1)?.as_str(),
         results.get(2)?.as_str()
     );
-    SpotifyId::from_uri(&uri).ok()
+    SpotifyUri::from_uri(&uri).ok()
 }
 
 #[derive(Clone, Debug)]
 pub struct Track {
-    pub id: SpotifyId,
+    pub id: SpotifyUri,
 }
 
 lazy_static! {
@@ -83,7 +83,7 @@ impl Track {
         Ok(Track { id })
     }
 
-    pub fn from_id(id: SpotifyId) -> Self {
+    pub fn from_id(id: SpotifyUri) -> Self {
         Track { id }
     }
 
@@ -135,7 +135,7 @@ impl TrackCollection for Track {
 }
 
 pub struct Album {
-    id: SpotifyId,
+    id: SpotifyUri,
 }
 
 impl Album {
@@ -144,11 +144,11 @@ impl Album {
         Ok(Album { id })
     }
 
-    pub fn from_id(id: SpotifyId) -> Self {
+    pub fn from_id(id: SpotifyUri) -> Self {
         Album { id }
     }
 
-    pub async fn is_album(id: SpotifyId, session: &Session) -> bool {
+    pub async fn is_album(id: SpotifyUri, session: &Session) -> bool {
         librespot::metadata::Album::get(session, &id).await.is_ok()
     }
 }
@@ -159,12 +159,12 @@ impl TrackCollection for Album {
         let album = librespot::metadata::Album::get(session, &self.id)
             .await
             .expect("Failed to get album");
-        album.tracks().map(|track| Track::from_id(*track)).collect()
+        album.tracks().map(|track| Track::from_id(track.clone())).collect()
     }
 }
 
 pub struct Playlist {
-    id: SpotifyId,
+    id: SpotifyUri,
 }
 
 impl Playlist {
@@ -173,11 +173,11 @@ impl Playlist {
         Ok(Playlist { id })
     }
 
-    pub fn from_id(id: SpotifyId) -> Self {
+    pub fn from_id(id: SpotifyUri) -> Self {
         Playlist { id }
     }
 
-    pub async fn is_playlist(id: SpotifyId, session: &Session) -> bool {
+    pub async fn is_playlist(id: SpotifyUri, session: &Session) -> bool {
         librespot::metadata::Playlist::get(session, &id)
             .await
             .is_ok()
@@ -192,7 +192,7 @@ impl TrackCollection for Playlist {
             .expect("Failed to get playlist");
         playlist
             .tracks()
-            .map(|track| Track::from_id(*track))
+            .map(|track| Track::from_id(track.clone()))
             .collect()
     }
 }
