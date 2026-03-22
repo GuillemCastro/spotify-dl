@@ -3,7 +3,8 @@ use librespot::core::cache::Cache;
 use librespot::core::config::SessionConfig;
 use librespot::core::session::Session;
 use librespot::discovery::Credentials;
-use librespot::oauth::get_access_token;
+use librespot::oauth::OAuthClientBuilder;
+use anyhow::anyhow;
 
 const SPOTIFY_CLIENT_ID: &str = "65b708073fc0480ea92a077233ca87bd";
 const SPOTIFY_REDIRECT_URI: &str = "http://127.0.0.1:8898/login";
@@ -30,9 +31,16 @@ pub async fn create_session() -> Result<Session> {
 }
 
 pub fn load_credentials() -> Result<Credentials> {
-    let token = match get_access_token(SPOTIFY_CLIENT_ID, SPOTIFY_REDIRECT_URI, vec!["streaming"]) {
-        Ok(token) => token,
-        Err(e) => return Err(e.into()),
-    };
+    let builder = OAuthClientBuilder::new(
+        SPOTIFY_CLIENT_ID,
+        SPOTIFY_REDIRECT_URI,
+        vec!["streaming"],
+    );
+
+    let client = builder.build().map_err(|e| anyhow!(format!("OAuth builder error: {}", e)))?;
+    let token = client
+        .get_access_token()
+        .map_err(|e| anyhow!(format!("Failed to get access token: {}", e)))?;
+
     Ok(Credentials::with_access_token(token.access_token))
 }

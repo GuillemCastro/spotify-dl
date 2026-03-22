@@ -47,11 +47,12 @@ impl Stream {
                 .on_retry(|attempt, _, e| {
                     let error = format!("{}", e);
                     let tx = tx.clone();
+                    let track_id = track.id.clone();
                     async move {
                         tracing::warn!(
                             "Attempt {} to load track {:?} failed: {}",
                             attempt,
-                            track.id,
+                            track_id,
                             error
                         );
                         Self::send_event(&tx, StreamEvent::Retry {
@@ -110,7 +111,7 @@ impl Stream {
     }
 
     async fn load(player: Arc<Player>, track: &Track) -> Result<()> {
-        player.load(track.id, true, 0);
+        player.load(track.id.clone(), true, 0);
 
         tracing::info!("Loading track: {:?}", track.id);
         loop {

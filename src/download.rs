@@ -59,8 +59,12 @@ impl Downloader {
         tracks: Vec<Track>,
         options: &DownloadOptions,
     ) -> Result<()> {
-        futures::stream::iter(tracks)
-            .map(|track| self.download_track(track, options))
+        let total = tracks.len();
+        futures::stream::iter(tracks.into_iter().enumerate())
+            .map(|(i, track)| {
+                let index = if total > 1 { Some(i + 1) } else { None };
+                self.download_track(track, options, index)
+            })
             .buffer_unordered(options.parallel)
             .try_collect::<Vec<_>>()
             .await?;
@@ -69,13 +73,18 @@ impl Downloader {
     }
 
     #[tracing::instrument(name = "download_track", skip(self))]
-    async fn download_track(&self, track: Track, options: &DownloadOptions) -> Result<()> {
+    async fn download_track(&self, track: Track, options: &DownloadOptions, index: Option<usize>) -> Result<()> {
         let metadata = track.metadata(&self.session).await?;
         tracing::info!("Downloading track: {:?}", metadata.track_name);
 
+        let filename = match index {
+            Some(i) => format!("{:02} - {}", i, metadata.to_string()),
+            None => metadata.to_string(),
+        };
+
         let path = options
             .destination
-            .join(metadata.to_string())
+            .join(filename)
             .with_extension(options.format.extension())
             .to_str()
             .ok_or(anyhow::anyhow!("Could not set the output path"))?
