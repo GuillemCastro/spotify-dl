@@ -1,5 +1,6 @@
 use std::fmt::Write;
 use std::path::PathBuf;
+use std::sync::Arc;
 use std::time::Duration;
 
 use anyhow::Result;
@@ -92,7 +93,7 @@ impl Downloader {
         let pb = self.add_progress_bar(&metadata);
 
         let stream = Stream::new(self.session.clone());
-        let channel = match stream.stream(track).await {
+        let channel = match stream.stream(Arc::new(track)).await {
             Ok(channel) => channel,
             Err(e) => {
                 self.fail_with_error(&pb, &metadata.to_string(), e.to_string());
